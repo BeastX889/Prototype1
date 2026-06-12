@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Round Timer",
+    "slug": "boxing-mma-timer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "roundtimer",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#10161d",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.beastx889.roundtimer",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "package": "com.beastx889.roundtimer",
+      "adaptiveIcon": {
+        "backgroundColor": "#10161d",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "permissions": ["POST_NOTIFICATIONS", "WAKE_LOCK"],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/bell.wav",
+            "./assets/sounds/end-bell.wav",
+            "./assets/sounds/warning.wav",
+            "./assets/sounds/beep.wav"
+          ]
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#10161d",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
