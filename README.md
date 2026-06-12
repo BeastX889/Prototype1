@@ -81,8 +81,14 @@ Or build a dev client in the cloud with EAS (no Mac needed for Android):
 
 ```bash
 npm install -g eas-cli
+eas login                                            # one time
+eas init                                             # one time: links a project id
 eas build --profile development --platform android   # or ios
 ```
+
+Build profiles are defined in `eas.json` (`development` = installable dev client
+APK, `preview` = internal test APK, `production` = Play Store app-bundle / store
+build).
 
 ### Useful scripts
 
