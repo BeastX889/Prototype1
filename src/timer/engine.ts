@@ -52,10 +52,16 @@ export interface TimerState {
   totalRounds: number;
   /** Time left in the current segment (ms), rounded up to whole seconds elsewhere. */
   remainingMs: number;
+  /** Total length of the current segment (ms); use with remainingMs for the ring fraction. */
+  segmentDurationMs: number;
   /** Time left in the whole session (ms). */
   totalRemainingMs: number;
   /** Index into the schedule array; -1 when done. */
   segmentIndex: number;
+  /** Phase of the upcoming segment, or null if this is the last one. */
+  nextPhase: Phase | null;
+  /** Length of the upcoming segment (ms); 0 if there is none. */
+  nextDurationMs: number;
   /** True during a work segment within the final `warningSec` seconds. */
   isWarning: boolean;
   done: boolean;
@@ -108,8 +114,11 @@ export function computeState(
       round: settings.rounds,
       totalRounds: settings.rounds,
       remainingMs: 0,
+      segmentDurationMs: 0,
       totalRemainingMs: 0,
       segmentIndex: -1,
+      nextPhase: null,
+      nextDurationMs: 0,
       isWarning: false,
       done: true,
     };
@@ -117,6 +126,7 @@ export function computeState(
 
   const idx = schedule.findIndex((s) => clamped >= s.startMs && clamped < s.endMs);
   const seg = schedule[idx];
+  const next = schedule[idx + 1];
   const remainingMs = seg.endMs - clamped;
   const isWarning =
     seg.phase === 'work' &&
@@ -128,8 +138,11 @@ export function computeState(
     round: seg.round,
     totalRounds: settings.rounds,
     remainingMs,
+    segmentDurationMs: seg.durationMs,
     totalRemainingMs: total - clamped,
     segmentIndex: idx,
+    nextPhase: next ? next.phase : null,
+    nextDurationMs: next ? next.durationMs : 0,
     isWarning,
     done: false,
   };
