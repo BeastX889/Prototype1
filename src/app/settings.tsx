@@ -19,6 +19,29 @@ import { colors } from '@/theme';
 
 const mmss = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
 
+/** Parse "M:SS" / "MM:SS", or a plain number treated as seconds. Returns null if unparseable. */
+const parseMmss = (text: string): number | null => {
+  const t = text.trim();
+  if (!t) return null;
+  if (t.includes(':')) {
+    const [m, s = '0'] = t.split(':');
+    const mins = parseInt(m || '0', 10);
+    const secs = parseInt(s || '0', 10);
+    if (Number.isNaN(mins) || Number.isNaN(secs)) return null;
+    return mins * 60 + secs;
+  }
+  const n = parseInt(t, 10);
+  return Number.isNaN(n) ? null : n;
+};
+
+/** Parse a plain integer, ignoring any non-digit characters (e.g. a trailing "s"). */
+const parseCount = (text: string): number | null => {
+  const digits = text.replace(/[^0-9]/g, '');
+  if (!digits) return null;
+  const n = parseInt(digits, 10);
+  return Number.isNaN(n) ? null : n;
+};
+
 function settingsEqual(a: TimerSettings, b: TimerSettings): boolean {
   return (
     a.prepSec === b.prepSec &&
@@ -91,11 +114,14 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={styles.section}>CUSTOMIZE</Text>
+        <Text style={styles.hint}>Use −/+ or tap a value to type it exactly (e.g. 2:30).</Text>
         <View style={styles.card}>
           <Stepper
             label="Round length"
             value={settings.roundSec}
             format={mmss}
+            parse={parseMmss}
+            keyboardKind="time"
             step={15}
             min={5}
             max={1800}
@@ -105,6 +131,8 @@ export default function SettingsScreen() {
             label="Rest length"
             value={settings.restSec}
             format={mmss}
+            parse={parseMmss}
+            keyboardKind="time"
             step={15}
             min={0}
             max={600}
@@ -113,6 +141,8 @@ export default function SettingsScreen() {
           <Stepper
             label="Rounds"
             value={settings.rounds}
+            parse={parseCount}
+            keyboardKind="numeric"
             step={1}
             min={1}
             max={99}
@@ -122,6 +152,8 @@ export default function SettingsScreen() {
             label="Prep countdown"
             value={settings.prepSec}
             format={mmss}
+            parse={parseMmss}
+            keyboardKind="time"
             step={5}
             min={0}
             max={60}
@@ -131,6 +163,8 @@ export default function SettingsScreen() {
             label="End warning"
             value={settings.warningSec}
             format={(v) => `${v}s`}
+            parse={parseCount}
+            keyboardKind="numeric"
             step={5}
             min={0}
             max={Math.min(60, settings.roundSec)}
@@ -176,6 +210,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 4,
   },
+  hint: { color: colors.textDim, fontSize: 13, marginBottom: 6 },
   presetList: { gap: 10 },
   card: { backgroundColor: colors.surface, gap: 2 },
   switchRow: {
