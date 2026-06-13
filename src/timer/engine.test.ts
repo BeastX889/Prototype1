@@ -50,6 +50,10 @@ test('computeState: walks prep -> work -> rest -> done', () => {
   assert.equal(st.phase, 'work');
   assert.equal(st.round, 1);
   assert.equal(st.remainingMs, 180_000);
+  // ring + next-phase data for the UI
+  assert.equal(st.segmentDurationMs, 180_000);
+  assert.equal(st.nextPhase, 'rest');
+  assert.equal(st.nextDurationMs, 60_000);
 
   // during round 1, final 10s => warning flag
   st = computeState(s, boxing, 10_000 + 175_000);
@@ -62,11 +66,19 @@ test('computeState: walks prep -> work -> rest -> done', () => {
   assert.equal(st.round, 1);
   assert.equal(st.isWarning, false);
 
+  // last work round has no next segment
+  st = computeState(s, boxing, 10_000 + 180_000 + 60_000 + 180_000 + 60_000 + 1_000);
+  assert.equal(st.phase, 'work');
+  assert.equal(st.round, 3);
+  assert.equal(st.nextPhase, null);
+  assert.equal(st.nextDurationMs, 0);
+
   // past the end => done
   st = computeState(s, boxing, 999_000_000);
   assert.equal(st.phase, 'done');
   assert.equal(st.done, true);
   assert.equal(st.remainingMs, 0);
+  assert.equal(st.nextPhase, null);
 });
 
 test('buildSoundEvents: bell at each round start, warning, end bell, prep beeps', () => {

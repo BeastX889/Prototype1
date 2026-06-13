@@ -10,6 +10,7 @@ import {
   type TimerState,
 } from './engine';
 import { initAudio, playSound, releaseAudio } from '@/audio/sounds';
+import { buzz } from '@/haptics';
 import {
   cancelSoundEvents,
   initNotifications,
@@ -70,7 +71,10 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
     (prevEl: number, curEl: number) => {
       if (!settings.soundEnabled) return;
       for (const ev of soundEvents) {
-        if (ev.atMs > prevEl && ev.atMs <= curEl) playSound(ev.sound, true);
+        if (ev.atMs > prevEl && ev.atMs <= curEl) {
+          playSound(ev.sound, true);
+          buzz(ev.sound);
+        }
       }
     },
     [settings.soundEnabled, soundEvents],
