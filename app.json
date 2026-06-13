@@ -39,6 +39,7 @@
           "sounds": [
             "./assets/sounds/bell.wav",
             "./assets/sounds/end-bell.wav",
+            "./assets/sounds/final-bell.wav",
             "./assets/sounds/warning.wav",
             "./assets/sounds/beep.wav"
           ]

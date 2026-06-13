@@ -90,3 +90,10 @@ writeWav('warning.wav', concat(beep(900, 0.12), silence(0.08), beep(900, 0.12), 
 
 // Countdown beep: single short tick.
 writeWav('beep.wav', beep(1000, 0.14));
+
+// Final bell (end of the last round): a triple gong — the classic "fight over" signal.
+writeWav(
+  'final-bell.wav',
+  concat(bell(587, 0.9), silence(0.06), bell(587, 0.9), silence(0.06), bell(587, 1.4)),
+);
+

@@ -95,8 +95,12 @@ test('buildSoundEvents: bell at each round start, warning, end bell, prep beeps'
   // warning 10s before round 1 ends (10s + 180s - 10s = 180s)
   assert.ok(ev.some((e) => e.sound === 'warning' && e.atMs === 180_000));
 
-  // end bell at end of round 1 (190s)
+  // end bell at end of round 1 (190s) — a normal round
   assert.ok(ev.some((e) => e.sound === 'endBell' && e.atMs === 190_000));
+
+  // the LAST round (round 3, total 670s) ends with the distinct finalBell, not endBell
+  assert.ok(ev.some((e) => e.sound === 'finalBell' && e.atMs === 670_000));
+  assert.ok(!ev.some((e) => e.sound === 'endBell' && e.atMs === 670_000));
 
   // events are sorted ascending
   for (let i = 1; i < ev.length; i++) assert.ok(ev[i].atMs >= ev[i - 1].atMs);
