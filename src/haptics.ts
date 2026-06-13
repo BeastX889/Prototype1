@@ -14,6 +14,11 @@ export function buzz(sound: SoundType): void {
       case 'bell':
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         break;
+      case 'finalBell':
+        // Stronger, distinct end-of-workout pattern: heavy hit + success buzz.
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 180);
+        break;
       case 'endBell':
       case 'warning':
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);

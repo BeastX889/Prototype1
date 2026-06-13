@@ -10,6 +10,7 @@ import type { SoundType } from '@/timer/engine';
 const SOURCES: Record<SoundType, number> = {
   bell: require('@/assets/sounds/bell.wav'),
   endBell: require('@/assets/sounds/end-bell.wav'),
+  finalBell: require('@/assets/sounds/final-bell.wav'),
   warning: require('@/assets/sounds/warning.wav'),
   beep: require('@/assets/sounds/beep.wav'),
 };

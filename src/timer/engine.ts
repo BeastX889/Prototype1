@@ -9,7 +9,7 @@
  */
 
 export type Phase = 'prep' | 'work' | 'rest' | 'done';
-export type SoundType = 'bell' | 'endBell' | 'warning' | 'beep';
+export type SoundType = 'bell' | 'endBell' | 'finalBell' | 'warning' | 'beep';
 
 export interface TimerSettings {
   /** Get-ready countdown before round 1 (seconds). 0 = skip. */
@@ -169,7 +169,12 @@ export function buildSoundEvents(schedule: Segment[], settings: TimerSettings): 
         });
       }
 
-      events.push({ atMs: seg.endMs, sound: 'endBell', label: `End of round ${seg.round}` });
+      const isFinal = seg.round === settings.rounds;
+      events.push({
+        atMs: seg.endMs,
+        sound: isFinal ? 'finalBell' : 'endBell',
+        label: isFinal ? 'Workout complete!' : `End of round ${seg.round}`,
+      });
     } else if (seg.phase === 'rest' || seg.phase === 'prep') {
       // Countdown beeps for the final 3 seconds of prep / rest.
       const label = seg.phase === 'prep' ? 'Get ready…' : `Rest — round ${seg.round + 1} next`;
