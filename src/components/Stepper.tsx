@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '@/theme';
 
 interface Props {
@@ -6,6 +7,13 @@ interface Props {
   value: number;
   /** Render the numeric value (e.g. as M:SS or a plain count). */
   format?: (v: number) => string;
+  /**
+   * If provided, the value becomes tappable to type an exact value. Returns the
+   * parsed number, or null if the text can't be parsed (edit is then discarded).
+   */
+  parse?: (text: string) => number | null;
+  /** Keyboard for the type-to-edit field. 'time' allows the ":" character. */
+  keyboardKind?: 'numeric' | 'time';
   step?: number;
   min?: number;
   max?: number;
@@ -16,12 +24,30 @@ export function Stepper({
   label,
   value,
   format = (v) => String(v),
+  parse,
+  keyboardKind = 'numeric',
   step = 1,
   min = 0,
   max = Number.MAX_SAFE_INTEGER,
   onChange,
 }: Props) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+
   const set = (next: number) => onChange(Math.max(min, Math.min(max, next)));
+
+  const startEdit = () => {
+    if (!parse) return;
+    setDraft(format(value));
+    setEditing(true);
+  };
+
+  const commit = () => {
+    const parsed = parse?.(draft);
+    if (parsed != null && Number.isFinite(parsed)) set(parsed);
+    setEditing(false);
+  };
+
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
@@ -34,7 +60,30 @@ export function Stepper({
         >
           <Text style={styles.btnText}>−</Text>
         </Pressable>
-        <Text style={styles.value}>{format(value)}</Text>
+
+        {editing ? (
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            onBlur={commit}
+            onSubmitEditing={commit}
+            autoFocus
+            selectTextOnFocus
+            keyboardType={keyboardKind === 'time' ? 'numbers-and-punctuation' : 'number-pad'}
+            returnKeyType="done"
+            style={[styles.value, styles.input]}
+            accessibilityLabel={`Edit ${label}`}
+          />
+        ) : (
+          <Pressable
+            onPress={startEdit}
+            disabled={!parse}
+            accessibilityLabel={parse ? `Edit ${label}` : undefined}
+          >
+            <Text style={[styles.value, parse && styles.editable]}>{format(value)}</Text>
+          </Pressable>
+        )}
+
         <Pressable
           style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
           onPress={() => set(value + step)}
@@ -74,5 +123,16 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     minWidth: 64,
     textAlign: 'center',
+  },
+  // Underline hints that the value can be tapped to type an exact number.
+  editable: {
+    textDecorationLine: 'underline',
+    textDecorationColor: colors.accent,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 8,
+    paddingVertical: 2,
   },
 });
