@@ -16,8 +16,10 @@ interface Props {
 
 const NEXT_LABEL: Record<Phase, string> = {
   prep: 'Prep',
+  warmup: 'Warm-up',
   work: 'Round',
   rest: 'Rest',
+  cooldown: 'Cool-down',
   done: '',
 };
 

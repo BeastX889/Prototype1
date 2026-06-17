@@ -4,12 +4,14 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import {
   buildSchedule,
   buildSoundEvents,
+  buildSpeechEvents,
   computeState,
   totalDurationMs,
   type TimerSettings,
   type TimerState,
 } from './engine';
 import { initAudio, playSound, releaseAudio } from '@/audio/sounds';
+import { say, stopSpeech } from '@/audio/speech';
 import { buzz } from '@/haptics';
 import {
   cancelSoundEvents,
@@ -40,6 +42,7 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
 
   const schedule = useMemo(() => buildSchedule(settings), [settings]);
   const soundEvents = useMemo(() => buildSoundEvents(schedule, settings), [schedule, settings]);
+  const speechEvents = useMemo(() => buildSpeechEvents(schedule, settings), [schedule, settings]);
 
   const [state, setState] = useState<TimerState>(() => computeState(schedule, settings, 0));
 
@@ -58,6 +61,7 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
     void initNotifications();
     return () => {
       releaseAudio();
+      stopSpeech();
       deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => {});
     };
   }, []);
@@ -69,15 +73,24 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
 
   const playDue = useCallback(
     (prevEl: number, curEl: number) => {
-      if (!settings.soundEnabled) return;
-      for (const ev of soundEvents) {
-        if (ev.atMs > prevEl && ev.atMs <= curEl) {
-          playSound(ev.sound, true);
-          buzz(ev.sound);
+      if (settings.soundEnabled) {
+        for (const ev of soundEvents) {
+          if (ev.atMs > prevEl && ev.atMs <= curEl) {
+            playSound(ev.sound, true);
+            buzz(ev.sound);
+          }
+        }
+      }
+      // Voice is independent of the sound toggle.
+      if (settings.voiceEnabled) {
+        for (const ev of speechEvents) {
+          if (ev.atMs > prevEl && ev.atMs <= curEl) {
+            say(ev.text, { interrupt: ev.kind === 'announce' });
+          }
         }
       }
     },
-    [settings.soundEnabled, soundEvents],
+    [settings.soundEnabled, settings.voiceEnabled, soundEvents, speechEvents],
   );
 
   const stopInterval = useCallback(() => {
@@ -121,6 +134,7 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
     stopInterval();
     setStatus('paused');
     void cancelSoundEvents();
+    stopSpeech();
     deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => {});
   }, [stopInterval]);
 
@@ -140,6 +154,7 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
     setStatus('idle');
     setState(computeState(schedule, settings, 0));
     void cancelSoundEvents();
+    stopSpeech();
     deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => {});
   }, [schedule, settings, stopInterval]);
 
@@ -167,6 +182,7 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
       if (statusRef.current !== 'running') return;
       if (next === 'background' || next === 'inactive') {
         stopInterval();
+        stopSpeech(); // TTS doesn't run backgrounded; notifications cover transitions
         const el = elapsedNow();
         if (settings.soundEnabled) void scheduleSoundEvents(soundEvents, el);
       } else if (next === 'active') {

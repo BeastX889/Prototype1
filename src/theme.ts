@@ -3,16 +3,20 @@ import type { Phase } from '@/timer/engine';
 /** Full-screen background color per phase — bold, high-energy "fight" palette. */
 export const PHASE_COLORS: Record<Phase | 'warning', string> = {
   prep: '#16202b', // dark neutral slate
+  warmup: '#b5701b', // amber = warm up
   work: '#0b9b3d', // vivid green = fight
   rest: '#0e63b0', // strong blue = rest
+  cooldown: '#0e8a8a', // teal = cool down
   warning: '#c81e1e', // alarming red = final seconds
   done: '#2a0b0b', // deep red = finished
 };
 
 export const PHASE_LABEL: Record<Phase, string> = {
   prep: 'GET READY',
+  warmup: 'WARM UP',
   work: 'FIGHT',
   rest: 'REST',
+  cooldown: 'COOL DOWN',
   done: 'DONE',
 };
 

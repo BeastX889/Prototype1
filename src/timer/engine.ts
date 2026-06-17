@@ -8,7 +8,7 @@
  * app is backgrounded.
  */
 
-export type Phase = 'prep' | 'work' | 'rest' | 'done';
+export type Phase = 'prep' | 'warmup' | 'work' | 'rest' | 'cooldown' | 'done';
 export type SoundType = 'bell' | 'endBell' | 'finalBell' | 'warning' | 'beep';
 
 export interface TimerSettings {
@@ -24,11 +24,23 @@ export interface TimerSettings {
   warningSec: number;
   /** Master sound toggle. */
   soundEnabled: boolean;
+  /** Optional warm-up block before round 1 (seconds). 0 = none. */
+  warmupSec: number;
+  /** Optional cool-down block after the last round (seconds). 0 = none. */
+  cooldownSec: number;
+  /** Per-round work durations (seconds), index = round-1. Empty/missing => use roundSec. */
+  roundDurations: number[];
+  /** Spoken round/phase announcements (TTS). */
+  voiceEnabled: boolean;
+  /** Call out boxing combos during work rounds (requires voiceEnabled). */
+  comboCaller: boolean;
+  /** Seconds between combo calls. */
+  comboIntervalSec: number;
 }
 
 export interface Segment {
-  phase: 'prep' | 'work' | 'rest';
-  /** 1-based round this segment belongs to (prep counts toward round 1). */
+  phase: 'prep' | 'warmup' | 'work' | 'rest' | 'cooldown';
+  /** 1-based round this segment belongs to (prep/warmup count toward round 1). */
   round: number;
   durationMs: number;
   /** Offset from timer start (ms). */
@@ -43,6 +55,14 @@ export interface SoundEvent {
   sound: SoundType;
   /** Human-readable label, used as the notification body when backgrounded. */
   label: string;
+}
+
+export interface SpeechEvent {
+  /** Offset from timer start (ms). */
+  atMs: number;
+  text: string;
+  /** announcements preempt speech; combos defer to anything already speaking. */
+  kind: 'announce' | 'combo';
 }
 
 export interface TimerState {
@@ -69,7 +89,68 @@ export interface TimerState {
 
 const SECOND = 1000;
 
-/** Build the ordered list of segments: [prep] -> (work, rest) x rounds (no trailing rest). */
+/** Boxing combos called out by the combo caller. Edit freely. */
+export const COMBOS: string[] = [
+  'Jab',
+  'Jab, cross',
+  'Jab, cross, hook',
+  'Double jab, cross',
+  'Cross, hook',
+  'Jab, cross, hook, cross',
+  'Jab, jab, cross',
+  'Hook, cross, hook',
+  'Jab, body cross',
+  'Uppercut, hook',
+  'Jab, cross, slip',
+  'One, two',
+  'One, two, three',
+  'Jab, cross, roll, hook',
+];
+
+/** Deterministic combo selection (testable; cycles through the list). */
+export function comboForIndex(i: number): string {
+  const n = COMBOS.length;
+  return COMBOS[((i % n) + n) % n];
+}
+
+const num = (v: unknown, d: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? v : d;
+
+/**
+ * Coerce any loaded/partial object into a complete, valid TimerSettings.
+ * This is the backward-compatibility keystone: settings saved before new fields
+ * existed (or any corrupt data) are filled with safe defaults. Route every load
+ * site through this.
+ */
+export function normalizeSettings(raw: unknown): TimerSettings {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const roundSec = Math.max(1, Math.floor(num(r.roundSec, 180)));
+  const warningSec = Math.max(0, Math.floor(num(r.warningSec, 10)));
+  return {
+    prepSec: Math.max(0, Math.floor(num(r.prepSec, 10))),
+    roundSec,
+    restSec: Math.max(0, Math.floor(num(r.restSec, 60))),
+    rounds: Math.max(1, Math.floor(num(r.rounds, 3))),
+    warningSec: Math.min(warningSec, roundSec),
+    soundEnabled: r.soundEnabled !== false,
+    warmupSec: Math.max(0, Math.floor(num(r.warmupSec, 0))),
+    cooldownSec: Math.max(0, Math.floor(num(r.cooldownSec, 0))),
+    roundDurations: Array.isArray(r.roundDurations)
+      ? r.roundDurations.map((x) =>
+          typeof x === 'number' && Number.isFinite(x) && x > 0 ? Math.floor(x) : roundSec,
+        )
+      : [],
+    voiceEnabled: r.voiceEnabled === true,
+    comboCaller: r.comboCaller === true,
+    comboIntervalSec: Math.max(5, Math.floor(num(r.comboIntervalSec, 20))),
+  };
+}
+
+/**
+ * Build the ordered list of segments:
+ *   [prep] -> [warmup] -> (work, rest) x rounds (no trailing rest) -> [cooldown]
+ * Per-round work length comes from `roundDurations[r-1]` when present, else `roundSec`.
+ */
 export function buildSchedule(settings: TimerSettings): Segment[] {
   const segments: Segment[] = [];
   let cursor = 0;
@@ -81,13 +162,17 @@ export function buildSchedule(settings: TimerSettings): Segment[] {
   };
 
   push('prep', 1, settings.prepSec * SECOND);
+  push('warmup', 1, settings.warmupSec * SECOND);
 
   for (let r = 1; r <= settings.rounds; r++) {
-    push('work', r, settings.roundSec * SECOND);
+    const workSec = settings.roundDurations[r - 1] ?? settings.roundSec;
+    push('work', r, workSec * SECOND);
     if (r < settings.rounds) {
       push('rest', r, settings.restSec * SECOND);
     }
   }
+
+  push('cooldown', settings.rounds, settings.cooldownSec * SECOND);
 
   return segments;
 }
@@ -149,12 +234,13 @@ export function computeState(
 }
 
 /**
- * Build the absolute timeline of sound events for a schedule. Used both to play
- * sounds in-app (matched against the tick) and to pre-schedule local
- * notifications so alerts still fire while the app is backgrounded.
+ * Build the absolute timeline of sound events. Used both to play sounds in-app
+ * (matched against the tick) and to pre-schedule local notifications so alerts
+ * still fire while the app is backgrounded.
  */
 export function buildSoundEvents(schedule: Segment[], settings: TimerSettings): SoundEvent[] {
   const events: SoundEvent[] = [];
+  const end = totalDurationMs(schedule);
 
   for (const seg of schedule) {
     if (seg.phase === 'work') {
@@ -169,20 +255,77 @@ export function buildSoundEvents(schedule: Segment[], settings: TimerSettings): 
         });
       }
 
-      const isFinal = seg.round === settings.rounds;
-      events.push({
-        atMs: seg.endMs,
-        sound: isFinal ? 'finalBell' : 'endBell',
-        label: isFinal ? 'Workout complete!' : `End of round ${seg.round}`,
-      });
-    } else if (seg.phase === 'rest' || seg.phase === 'prep') {
-      // Countdown beeps for the final 3 seconds of prep / rest.
-      const label = seg.phase === 'prep' ? 'Get ready…' : `Rest — round ${seg.round + 1} next`;
+      // Per-round end bell, except the very last segment end (covered by finalBell below).
+      if (seg.endMs < end) {
+        events.push({ atMs: seg.endMs, sound: 'endBell', label: `End of round ${seg.round}` });
+      }
+    } else if (seg.phase === 'rest' || seg.phase === 'prep' || seg.phase === 'warmup') {
+      // Countdown beeps for the final 3 seconds.
+      const label =
+        seg.phase === 'prep'
+          ? 'Get ready…'
+          : seg.phase === 'warmup'
+            ? 'Warm-up — round 1 next'
+            : `Rest — round ${seg.round + 1} next`;
       for (let t = 3; t >= 1; t--) {
         const atMs = seg.endMs - t * SECOND;
         if (atMs > seg.startMs) events.push({ atMs, sound: 'beep', label });
       }
     }
+  }
+
+  // Distinct "workout complete" bell at the very end (last work end, or cooldown end).
+  if (end > 0) {
+    events.push({ atMs: end, sound: 'finalBell', label: 'Workout complete!' });
+  }
+
+  events.sort((a, b) => a.atMs - b.atMs);
+  return events;
+}
+
+/**
+ * Build the absolute timeline of spoken cues (TTS). Announcements at phase
+ * transitions, plus combo calls during work rounds. Returns [] unless voice is on.
+ */
+export function buildSpeechEvents(schedule: Segment[], settings: TimerSettings): SpeechEvent[] {
+  if (!settings.voiceEnabled) return [];
+
+  const events: SpeechEvent[] = [];
+  const end = totalDurationMs(schedule);
+  let comboIdx = 0;
+
+  for (const seg of schedule) {
+    if (seg.phase === 'work') {
+      events.push({ atMs: seg.startMs, text: `Round ${seg.round}, fight!`, kind: 'announce' });
+
+      const warnAt = seg.endMs - settings.warningSec * SECOND;
+      if (settings.warningSec > 0 && warnAt > seg.startMs) {
+        events.push({ atMs: warnAt, text: `${settings.warningSec} seconds`, kind: 'announce' });
+      }
+
+      if (settings.comboCaller) {
+        const interval = Math.max(5, settings.comboIntervalSec) * SECOND;
+        // Stop calling combos before the round-end warning / bell so they don't collide.
+        const guard = Math.max(settings.warningSec, 3) * SECOND;
+        for (let t = seg.startMs + interval; t < seg.endMs - guard; t += interval) {
+          events.push({ atMs: t, text: comboForIndex(comboIdx++), kind: 'combo' });
+        }
+      }
+    } else {
+      const text =
+        seg.phase === 'prep'
+          ? 'Get ready'
+          : seg.phase === 'warmup'
+            ? 'Warm up'
+            : seg.phase === 'rest'
+              ? 'Rest'
+              : 'Cool down';
+      events.push({ atMs: seg.startMs, text, kind: 'announce' });
+    }
+  }
+
+  if (end > 0) {
+    events.push({ atMs: end, text: 'Workout complete', kind: 'announce' });
   }
 
   events.sort((a, b) => a.atMs - b.atMs);

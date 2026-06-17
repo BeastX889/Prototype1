@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import type { TimerSettings } from '@/timer/engine';
+import { type TimerSettings } from '@/timer/engine';
 import {
   BUILT_IN_PRESETS,
   deleteCustomPreset,
@@ -14,33 +14,10 @@ import {
   type Preset,
 } from '@/storage/presets';
 import { PresetCard } from '@/components/PresetCard';
+import { PerRoundEditor } from '@/components/PerRoundEditor';
 import { Stepper } from '@/components/Stepper';
+import { mmss, parseMmss, parseCount } from '@/format';
 import { colors } from '@/theme';
-
-const mmss = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
-
-/** Parse "M:SS" / "MM:SS", or a plain number treated as seconds. Returns null if unparseable. */
-const parseMmss = (text: string): number | null => {
-  const t = text.trim();
-  if (!t) return null;
-  if (t.includes(':')) {
-    const [m, s = '0'] = t.split(':');
-    const mins = parseInt(m || '0', 10);
-    const secs = parseInt(s || '0', 10);
-    if (Number.isNaN(mins) || Number.isNaN(secs)) return null;
-    return mins * 60 + secs;
-  }
-  const n = parseInt(t, 10);
-  return Number.isNaN(n) ? null : n;
-};
-
-/** Parse a plain integer, ignoring any non-digit characters (e.g. a trailing "s"). */
-const parseCount = (text: string): number | null => {
-  const digits = text.replace(/[^0-9]/g, '');
-  if (!digits) return null;
-  const n = parseInt(digits, 10);
-  return Number.isNaN(n) ? null : n;
-};
 
 function settingsEqual(a: TimerSettings, b: TimerSettings): boolean {
   return (
@@ -48,7 +25,10 @@ function settingsEqual(a: TimerSettings, b: TimerSettings): boolean {
     a.roundSec === b.roundSec &&
     a.restSec === b.restSec &&
     a.rounds === b.rounds &&
-    a.warningSec === b.warningSec
+    a.warningSec === b.warningSec &&
+    a.warmupSec === b.warmupSec &&
+    a.cooldownSec === b.cooldownSec &&
+    JSON.stringify(a.roundDurations) === JSON.stringify(b.roundDurations)
   );
 }
 
@@ -63,18 +43,27 @@ export default function SettingsScreen() {
 
   if (!settings) return <View style={styles.fill} />;
 
-  const update = (patch: Partial<TimerSettings>) => {
-    const next = { ...settings, ...patch };
-    // Keep the warning shorter than a round.
+  const commit = (next: TimerSettings) => {
     next.warningSec = Math.min(next.warningSec, next.roundSec);
     setSettings(next);
     void saveLastSettings(next);
   };
 
-  const applyPreset = (p: Preset) => {
-    setSettings(p.settings);
-    void saveLastSettings(p.settings);
+  const update = (patch: Partial<TimerSettings>) => commit({ ...settings, ...patch });
+
+  // Changing the round count resizes a custom per-round array to match.
+  const setRounds = (rounds: number) => {
+    const next = { ...settings, rounds };
+    if (settings.roundDurations.length > 0) {
+      next.roundDurations = Array.from(
+        { length: rounds },
+        (_, i) => settings.roundDurations[i] ?? settings.roundSec,
+      );
+    }
+    commit(next);
   };
+
+  const applyPreset = (p: Preset) => commit({ ...p.settings });
 
   const onSaveCustom = async () => {
     const preset: Preset = {
@@ -113,7 +102,7 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        <Text style={styles.section}>CUSTOMIZE</Text>
+        <Text style={styles.section}>ROUNDS</Text>
         <Text style={styles.hint}>Use −/+ or tap a value to type it exactly (e.g. 2:30).</Text>
         <View style={styles.card}>
           <Stepper
@@ -146,7 +135,35 @@ export default function SettingsScreen() {
             step={1}
             min={1}
             max={99}
-            onChange={(v) => update({ rounds: v })}
+            onChange={setRounds}
+          />
+          <PerRoundEditor
+            rounds={settings.rounds}
+            roundSec={settings.roundSec}
+            roundDurations={settings.roundDurations}
+            onChange={(roundDurations) => update({ roundDurations })}
+          />
+          <Stepper
+            label="Warm-up"
+            value={settings.warmupSec}
+            format={mmss}
+            parse={parseMmss}
+            keyboardKind="time"
+            step={30}
+            min={0}
+            max={1800}
+            onChange={(v) => update({ warmupSec: v })}
+          />
+          <Stepper
+            label="Cool-down"
+            value={settings.cooldownSec}
+            format={mmss}
+            parse={parseMmss}
+            keyboardKind="time"
+            step={30}
+            min={0}
+            max={1800}
+            onChange={(v) => update({ cooldownSec: v })}
           />
           <Stepper
             label="Prep countdown"
@@ -170,13 +187,40 @@ export default function SettingsScreen() {
             max={Math.min(60, settings.roundSec)}
             onChange={(v) => update({ warningSec: v })}
           />
+        </View>
+
+        <Text style={styles.section}>AUDIO &amp; VOICE</Text>
+        <View style={styles.card}>
           <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Sound</Text>
-            <Switch
-              value={settings.soundEnabled}
-              onValueChange={(v) => update({ soundEnabled: v })}
-            />
+            <Text style={styles.switchLabel}>Sound (bells &amp; beeps)</Text>
+            <Switch value={settings.soundEnabled} onValueChange={(v) => update({ soundEnabled: v })} />
           </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Voice announcements</Text>
+            <Switch value={settings.voiceEnabled} onValueChange={(v) => update({ voiceEnabled: v })} />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Combo caller</Text>
+            <Switch value={settings.comboCaller} onValueChange={(v) => update({ comboCaller: v })} />
+          </View>
+          {settings.comboCaller && (
+            <>
+              {!settings.voiceEnabled && (
+                <Text style={styles.hint}>Combo caller needs Voice announcements on.</Text>
+              )}
+              <Stepper
+                label="Combo every"
+                value={settings.comboIntervalSec}
+                format={(v) => `${v}s`}
+                parse={parseCount}
+                keyboardKind="numeric"
+                step={5}
+                min={5}
+                max={120}
+                onChange={(v) => update({ comboIntervalSec: v })}
+              />
+            </>
+          )}
         </View>
 
         <Pressable
@@ -201,7 +245,7 @@ const styles = StyleSheet.create({
   },
   title: { color: colors.text, fontSize: 26, fontWeight: '800' },
   done: { color: colors.accent, fontSize: 18, fontWeight: '700' },
-  content: { padding: 20, paddingTop: 4, gap: 10 },
+  content: { padding: 20, paddingTop: 4, gap: 10, paddingBottom: 48 },
   section: {
     color: colors.textDim,
     fontSize: 13,
