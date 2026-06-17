@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { TimerSettings } from '@/timer/engine';
+import { normalizeSettings, type TimerSettings } from '@/timer/engine';
 
 export interface Preset {
   id: string;
@@ -9,45 +9,43 @@ export interface Preset {
   settings: TimerSettings;
 }
 
-const baseSound = { warningSec: 10, soundEnabled: true } as const;
-
-/** Built-in presets covering common boxing / MMA / interval formats. */
+/** Built-in presets. `normalizeSettings` fills every field with safe defaults. */
 export const BUILT_IN_PRESETS: Preset[] = [
   {
     id: 'boxing-pro',
     name: 'Boxing — Pro',
     builtIn: true,
-    settings: { prepSec: 10, roundSec: 180, restSec: 60, rounds: 12, ...baseSound },
+    settings: normalizeSettings({ prepSec: 10, roundSec: 180, restSec: 60, rounds: 12, warningSec: 10 }),
   },
   {
     id: 'boxing-amateur',
     name: 'Boxing — Amateur',
     builtIn: true,
-    settings: { prepSec: 10, roundSec: 180, restSec: 60, rounds: 3, ...baseSound },
+    settings: normalizeSettings({ prepSec: 10, roundSec: 180, restSec: 60, rounds: 3, warningSec: 10 }),
   },
   {
     id: 'mma-regular',
     name: 'MMA — Regular',
     builtIn: true,
-    settings: { prepSec: 10, roundSec: 300, restSec: 60, rounds: 3, ...baseSound },
+    settings: normalizeSettings({ prepSec: 10, roundSec: 300, restSec: 60, rounds: 3, warningSec: 10 }),
   },
   {
     id: 'mma-championship',
     name: 'MMA — Championship',
     builtIn: true,
-    settings: { prepSec: 10, roundSec: 300, restSec: 60, rounds: 5, ...baseSound },
+    settings: normalizeSettings({ prepSec: 10, roundSec: 300, restSec: 60, rounds: 5, warningSec: 10 }),
   },
   {
     id: 'tabata',
     name: 'Tabata',
     builtIn: true,
-    settings: { prepSec: 10, roundSec: 20, restSec: 10, rounds: 8, warningSec: 3, soundEnabled: true },
+    settings: normalizeSettings({ prepSec: 10, roundSec: 20, restSec: 10, rounds: 8, warningSec: 3 }),
   },
   {
     id: 'hiit',
     name: 'HIIT — 45/15',
     builtIn: true,
-    settings: { prepSec: 10, roundSec: 45, restSec: 15, rounds: 10, warningSec: 5, soundEnabled: true },
+    settings: normalizeSettings({ prepSec: 10, roundSec: 45, restSec: 15, rounds: 10, warningSec: 5 }),
   },
 ];
 
@@ -56,11 +54,13 @@ export const DEFAULT_PRESET = BUILT_IN_PRESETS[1]; // Boxing — Amateur
 const CUSTOM_KEY = 'timer.customPresets.v1';
 const LAST_KEY = 'timer.lastSettings.v1';
 
-/** Load user-saved custom presets (empty array if none / on error). */
+/** Load user-saved custom presets (empty array if none / on error). Settings normalized. */
 export async function loadCustomPresets(): Promise<Preset[]> {
   try {
     const raw = await AsyncStorage.getItem(CUSTOM_KEY);
-    return raw ? (JSON.parse(raw) as Preset[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Preset[];
+    return parsed.map((p) => ({ ...p, settings: normalizeSettings(p.settings) }));
   } catch {
     return [];
   }
@@ -93,15 +93,20 @@ export async function saveLastSettings(settings: TimerSettings): Promise<void> {
 export async function loadLastSettings(): Promise<TimerSettings> {
   try {
     const raw = await AsyncStorage.getItem(LAST_KEY);
-    return raw ? (JSON.parse(raw) as TimerSettings) : DEFAULT_PRESET.settings;
+    return normalizeSettings(raw ? JSON.parse(raw) : DEFAULT_PRESET.settings);
   } catch {
     return DEFAULT_PRESET.settings;
   }
 }
 
-/** "12 × 3:00 / 1:00" style summary for a preset card. */
+const fmt = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
+
+/** "12 × 3:00 / 1:00" style summary, with warm-up/cool-down markers and "varied" rounds. */
 export function summarize(s: TimerSettings): string {
-  const fmt = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
+  const varied = s.roundDurations.length > 0 && new Set(s.roundDurations.slice(0, s.rounds)).size > 1;
+  const work = varied ? 'varied' : fmt(s.roundSec);
   const rest = s.restSec > 0 ? ` / ${fmt(s.restSec)}` : '';
-  return `${s.rounds} × ${fmt(s.roundSec)}${rest}`;
+  const wu = s.warmupSec > 0 ? `WU ${fmt(s.warmupSec)} · ` : '';
+  const cd = s.cooldownSec > 0 ? ` · CD ${fmt(s.cooldownSec)}` : '';
+  return `${wu}${s.rounds} × ${work}${rest}${cd}`;
 }
