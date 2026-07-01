@@ -36,6 +36,10 @@ export interface TimerSettings {
   comboCaller: boolean;
   /** Seconds between combo calls. */
   comboIntervalSec: number;
+  /** How bells interact with other audio: mix over, duck, or pause it (solo). */
+  audioMode: 'mix' | 'duck' | 'solo';
+  /** Bell playback volume, 0–1. */
+  volume: number;
 }
 
 export interface Segment {
@@ -143,6 +147,8 @@ export function normalizeSettings(raw: unknown): TimerSettings {
     voiceEnabled: r.voiceEnabled === true,
     comboCaller: r.comboCaller === true,
     comboIntervalSec: Math.max(5, Math.floor(num(r.comboIntervalSec, 20))),
+    audioMode: r.audioMode === 'mix' || r.audioMode === 'solo' ? r.audioMode : 'duck',
+    volume: Math.max(0, Math.min(1, num(r.volume, 1))),
   };
 }
 
