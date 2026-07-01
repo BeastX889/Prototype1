@@ -63,6 +63,8 @@ test('normalizeSettings: fills defaults from a v1-shaped object', () => {
   assert.equal(n.voiceEnabled, false);
   assert.equal(n.comboCaller, false);
   assert.equal(n.comboIntervalSec, 20);
+  assert.equal(n.audioMode, 'duck');
+  assert.equal(n.volume, 1);
 });
 
 test('normalizeSettings: sanitizes garbage roundDurations to roundSec', () => {

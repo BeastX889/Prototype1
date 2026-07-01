@@ -71,11 +71,22 @@ export async function initNotifications(): Promise<boolean> {
  * @param events full sound timeline (offsets from session start)
  * @param elapsedMs how far into the session we are right now
  */
+// iOS keeps only the soonest ~64 pending notifications, so schedule only the
+// high-value bells (drop countdown beeps) and cap the total.
+const BACKGROUND_SOUNDS: ReadonlySet<SoundType> = new Set(['bell', 'endBell', 'finalBell', 'warning']);
+const MAX_SCHEDULED = 60;
+
 export async function scheduleSoundEvents(events: SoundEvent[], elapsedMs: number): Promise<void> {
   if (Platform.OS === 'web') return;
   await cancelSoundEvents();
 
-  for (const ev of events) {
+  const upcoming = events.filter((ev) => ev.atMs > elapsedMs && BACKGROUND_SOUNDS.has(ev.sound));
+  const scheduled = upcoming.slice(0, MAX_SCHEDULED);
+  if (upcoming.length > scheduled.length) {
+    console.warn(`[timer] capped background notifications at ${MAX_SCHEDULED} (${upcoming.length} pending)`);
+  }
+
+  for (const ev of scheduled) {
     const seconds = (ev.atMs - elapsedMs) / 1000;
     if (seconds <= 0) continue; // already passed
 

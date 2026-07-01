@@ -16,8 +16,15 @@ import {
 import { PresetCard } from '@/components/PresetCard';
 import { PerRoundEditor } from '@/components/PerRoundEditor';
 import { Stepper } from '@/components/Stepper';
+import { initAudio, playSound, setOutputMode, setVolume } from '@/audio/sounds';
 import { mmss, parseMmss, parseCount } from '@/format';
 import { colors } from '@/theme';
+
+const AUDIO_MODES: { key: TimerSettings['audioMode']; label: string }[] = [
+  { key: 'mix', label: 'Mix' },
+  { key: 'duck', label: 'Duck' },
+  { key: 'solo', label: 'Solo' },
+];
 
 function settingsEqual(a: TimerSettings, b: TimerSettings): boolean {
   return (
@@ -76,6 +83,14 @@ export default function SettingsScreen() {
   };
 
   const onDelete = async (id: string) => setCustom(await deleteCustomPreset(id));
+
+  // Play the round bell now so the user can check audibility with their current settings.
+  const soundCheck = async () => {
+    await initAudio(settings.audioMode, settings.volume);
+    setOutputMode(settings.audioMode);
+    setVolume(settings.volume);
+    playSound('bell', true);
+  };
 
   const allPresets = [...BUILT_IN_PRESETS, ...custom];
 
@@ -195,6 +210,48 @@ export default function SettingsScreen() {
             <Text style={styles.switchLabel}>Sound (bells &amp; beeps)</Text>
             <Switch value={settings.soundEnabled} onValueChange={(v) => update({ soundEnabled: v })} />
           </View>
+
+          <View style={styles.modeRow}>
+            <Text style={styles.switchLabel}>Over music</Text>
+            <View style={styles.segment}>
+              {AUDIO_MODES.map((m) => (
+                <Pressable
+                  key={m.key}
+                  onPress={() => update({ audioMode: m.key })}
+                  style={[styles.segmentBtn, settings.audioMode === m.key && styles.segmentBtnOn]}
+                  accessibilityLabel={`Audio mode ${m.label}`}
+                >
+                  <Text style={[styles.segmentText, settings.audioMode === m.key && styles.segmentTextOn]}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          <Text style={styles.hint}>
+            Mix = play over music · Duck = lower music briefly · Solo = pause music for the bell.
+          </Text>
+
+          <Stepper
+            label="Volume"
+            value={Math.round(settings.volume * 100)}
+            format={(v) => `${v}%`}
+            parse={parseCount}
+            keyboardKind="numeric"
+            step={10}
+            min={0}
+            max={100}
+            onChange={(v) => update({ volume: Math.max(0, Math.min(1, v / 100)) })}
+          />
+
+          <Pressable
+            onPress={soundCheck}
+            style={({ pressed }) => [styles.soundCheck, pressed && styles.pressed]}
+            accessibilityLabel="Sound check"
+          >
+            <Text style={styles.soundCheckText}>🔔 Sound check</Text>
+          </Pressable>
+
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Voice announcements</Text>
             <Switch value={settings.voiceEnabled} onValueChange={(v) => update({ voiceEnabled: v })} />
@@ -264,6 +321,26 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   switchLabel: { color: colors.text, fontSize: 17, fontWeight: '600' },
+  modeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  segment: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 10, padding: 3 },
+  segmentBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
+  segmentBtnOn: { backgroundColor: colors.accent },
+  segmentText: { color: colors.textDim, fontSize: 15, fontWeight: '700' },
+  segmentTextOn: { color: colors.text },
+  soundCheck: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  soundCheckText: { color: colors.text, fontSize: 16, fontWeight: '700' },
   saveBtn: {
     backgroundColor: colors.accent,
     borderRadius: 14,

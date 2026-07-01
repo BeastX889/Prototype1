@@ -10,7 +10,7 @@ import {
   type TimerSettings,
   type TimerState,
 } from './engine';
-import { initAudio, playSound, releaseAudio } from '@/audio/sounds';
+import { initAudio, playSound, releaseAudio, setOutputMode, setVolume } from '@/audio/sounds';
 import { say, stopSpeech } from '@/audio/speech';
 import { buzz } from '@/haptics';
 import {
@@ -57,7 +57,7 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
 
   // Initialise audio + notification permissions once.
   useEffect(() => {
-    void initAudio();
+    void initAudio(settings.audioMode, settings.volume);
     void initNotifications();
     return () => {
       releaseAudio();
@@ -65,6 +65,12 @@ export function useTimer(initialSettings: TimerSettings): UseTimer {
       deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => {});
     };
   }, []);
+
+  // Re-apply audio output mode / volume when the user changes them.
+  useEffect(() => {
+    setOutputMode(settings.audioMode);
+    setVolume(settings.volume);
+  }, [settings.audioMode, settings.volume]);
 
   const elapsedNow = useCallback(
     () => Date.now() - startTsRef.current - pausedAccumRef.current,
