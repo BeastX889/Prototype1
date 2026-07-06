@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated, BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTimer } from '@/timer/useTimer';
 import { buildSchedule, totalDurationMs, type TimerSettings } from '@/timer/engine';
 import { loadLastSettings, saveLastSettings, summarize } from '@/storage/presets';
@@ -12,6 +13,9 @@ import { Controls } from '@/components/Controls';
 import { WorkoutComplete } from '@/components/WorkoutComplete';
 import { phaseColor, colors } from '@/theme';
 
+// Match the splash background so launch doesn't flash a different dark.
+const SPLASH_BG = '#10161d';
+
 export default function TimerScreen() {
   const [initial, setInitial] = useState<TimerSettings | null>(null);
 
@@ -20,13 +24,13 @@ export default function TimerScreen() {
   }, []);
 
   if (!initial) {
-    return <View style={[styles.fill, { backgroundColor: colors.surface }]} />;
+    return <View style={[styles.fill, { backgroundColor: SPLASH_BG }]} />;
   }
   return <Timer initial={initial} />;
 }
 
 function Timer({ initial }: { initial: TimerSettings }) {
-  const { status, state, settings, setSettings, start, pause, resume, reset, skip } =
+  const { status, state, settings, setSettings, start, pause, resume, reset, skip, getSessionSummary } =
     useTimer(initial);
 
   // Reload the last-chosen preset when returning from settings — only while idle,
@@ -39,6 +43,28 @@ function Timer({ initial }: { initial: TimerSettings }) {
     }, [status, setSettings]),
   );
 
+  // Android hardware back must not silently kill a live workout.
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      const s = statusRef.current;
+      if (s === 'running') {
+        pause();
+        return true; // swallow: back pauses instead of exiting
+      }
+      if (s === 'paused') {
+        Alert.alert('End workout?', 'Your session is paused. Leave and lose it?', [
+          { text: 'Keep training', style: 'cancel' },
+          { text: 'End workout', style: 'destructive', onPress: () => reset() },
+        ]);
+        return true;
+      }
+      return false; // idle/done: default behavior
+    });
+    return () => sub.remove();
+  }, [pause, reset]);
+
   // Log a session once when the workout finishes naturally.
   const loggedRef = useRef(false);
   useEffect(() => {
@@ -49,17 +75,21 @@ function Timer({ initial }: { initial: TimerSettings }) {
     if (loggedRef.current) return;
     loggedRef.current = true;
     const plannedMs = totalDurationMs(buildSchedule(settings));
+    // Log what actually happened, not the plan: skipping rounds must not
+    // inflate history/stats, and finishing while backgrounded must not book
+    // the workout to the reopen time.
+    const summary = getSessionSummary();
     void addSession({
       id: `${Date.now()}`,
-      dateISO: new Date().toISOString(),
+      dateISO: new Date(summary.completedAtTs).toISOString(),
       presetName: summarize(settings),
-      totalMs: plannedMs,
+      totalMs: summary.activeMs,
       plannedMs,
-      roundsCompleted: settings.rounds,
+      roundsCompleted: summary.roundsCompleted,
       roundsPlanned: settings.rounds,
       completed: true,
     });
-  }, [status, settings]);
+  }, [status, settings, getSessionSummary]);
 
   // Pulsing white overlay during the final-seconds warning.
   const flash = useRef(new Animated.Value(0)).current;
@@ -112,25 +142,36 @@ function Timer({ initial }: { initial: TimerSettings }) {
     <View style={[styles.fill, { backgroundColor: bg }]}>
       <SafeAreaView style={styles.fill}>
         <View style={styles.topBar}>
-          <Pressable onPress={toggleSound} hitSlop={12} accessibilityLabel="Toggle sound">
-            <Text style={styles.icon}>{settings.soundEnabled ? '🔔' : '🔕'}</Text>
+          <Pressable
+            onPress={toggleSound}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle sound"
+          >
+            <Ionicons
+              name={settings.soundEnabled ? 'notifications' : 'notifications-off'}
+              size={26}
+              color={colors.text}
+            />
           </Pressable>
           <View style={styles.topRight}>
             <Pressable
               onPress={() => router.push('/history')}
               hitSlop={12}
+              accessibilityRole="button"
               accessibilityLabel="History"
               disabled={!idle}
             >
-              <Text style={[styles.icon, !idle && styles.disabled]}>📊</Text>
+              <Ionicons name="stats-chart" size={24} color={colors.text} style={!idle && styles.disabled} />
             </Pressable>
             <Pressable
               onPress={() => router.push('/settings')}
               hitSlop={12}
+              accessibilityRole="button"
               accessibilityLabel="Open settings"
               disabled={!idle}
             >
-              <Text style={[styles.icon, !idle && styles.disabled]}>⚙︎</Text>
+              <Ionicons name="settings-sharp" size={24} color={colors.text} style={!idle && styles.disabled} />
             </Pressable>
           </View>
         </View>
@@ -138,6 +179,7 @@ function Timer({ initial }: { initial: TimerSettings }) {
         <Pressable
           style={styles.center}
           onPress={tapToggle}
+          accessibilityRole="button"
           accessibilityLabel={status === 'running' ? 'Pause' : status === 'paused' ? 'Resume' : undefined}
         >
           <TimeDisplay
@@ -151,9 +193,12 @@ function Timer({ initial }: { initial: TimerSettings }) {
             nextDurationMs={state.nextDurationMs}
           />
           <View style={styles.dots}>
-            <RoundDots round={state.round} totalRounds={state.totalRounds} />
+            <RoundDots round={state.round} totalRounds={state.totalRounds} phase={state.phase} />
           </View>
-          {status === 'paused' && <Text style={styles.paused}>PAUSED — tap to resume</Text>}
+          {/* Fixed-height slot so pausing doesn't shift the whole layout. */}
+          <View style={styles.pausedSlot}>
+            {status === 'paused' && <Text style={styles.paused}>PAUSED — tap to resume</Text>}
+          </View>
         </Pressable>
 
         <View style={styles.controls}>
@@ -184,14 +229,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingTop: 12,
   },
-  topRight: { flexDirection: 'row', gap: 22, alignItems: 'center' },
-  icon: { fontSize: 28 },
+  topRight: { flexDirection: 'row', gap: 24, alignItems: 'center' },
   disabled: { opacity: 0.3 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  dots: { marginTop: 28 },
-  paused: { color: colors.text, fontSize: 16, fontWeight: '700', letterSpacing: 1, marginTop: 18 },
+  dots: { marginTop: 26 },
+  pausedSlot: { height: 40, justifyContent: 'center' },
+  paused: { color: colors.text, fontSize: 16, fontWeight: '700', letterSpacing: 1 },
   controls: { paddingBottom: 40, paddingHorizontal: 20 },
   flash: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
 });

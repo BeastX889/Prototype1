@@ -10,9 +10,12 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test:engine": "node --test --experimental-strip-types src/timer/engine.test.ts",
-    "test": "node --test --experimental-strip-types src/timer/engine.test.ts src/storage/stats.test.ts"
+    "test": "node --test --experimental-strip-types src/timer/engine.test.ts src/storage/stats.test.ts",
+    "gen:store-assets": "node scripts/gen-store-assets.mjs",
+    "gen:icons": "node scripts/gen-icons.mjs"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~56.0.11",
     "expo-audio": "~56.0.12",
@@ -38,6 +41,7 @@
   "devDependencies": {
     "@types/node": "^22.19.21",
     "@types/react": "~19.2.2",
+    "puppeteer-core": "^23.11.1",
     "sharp": "^0.35.1",
     "typescript": "~6.0.3"
   },

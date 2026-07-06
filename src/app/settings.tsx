@@ -26,6 +26,12 @@ const AUDIO_MODES: { key: TimerSettings['audioMode']; label: string }[] = [
   { key: 'solo', label: 'Solo' },
 ];
 
+// Default Switch colors are grey-on-grey on the dark theme.
+const SWITCH_COLORS = {
+  trackColor: { false: colors.surfaceAlt, true: colors.accent },
+  thumbColor: colors.text,
+} as const;
+
 function settingsEqual(a: TimerSettings, b: TimerSettings): boolean {
   return (
     a.prepSec === b.prepSec &&
@@ -42,6 +48,8 @@ function settingsEqual(a: TimerSettings, b: TimerSettings): boolean {
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<TimerSettings | null>(null);
   const [custom, setCustom] = useState<Preset[]>([]);
+  // Must be declared before the early return below — hooks order is fixed.
+  const [justSaved, setJustSaved] = useState(false);
 
   useEffect(() => {
     loadLastSettings().then(setSettings);
@@ -70,16 +78,34 @@ export default function SettingsScreen() {
     commit(next);
   };
 
-  const applyPreset = (p: Preset) => commit({ ...p.settings });
+  // Presets define the workout STRUCTURE only — applying one must not wipe the
+  // user's audio/voice preferences (volume, mix mode, voice, combos).
+  const applyPreset = (p: Preset) =>
+    commit({
+      ...settings,
+      prepSec: p.settings.prepSec,
+      roundSec: p.settings.roundSec,
+      restSec: p.settings.restSec,
+      rounds: p.settings.rounds,
+      warningSec: p.settings.warningSec,
+      warmupSec: p.settings.warmupSec,
+      cooldownSec: p.settings.cooldownSec,
+      roundDurations: [...p.settings.roundDurations],
+    });
 
   const onSaveCustom = async () => {
-    const preset: Preset = {
-      id: `custom-${Date.now()}`,
-      name: `Custom ${summarize(settings)}`,
-      builtIn: false,
-      settings,
-    };
-    setCustom(await saveCustomPreset(preset));
+    // Don't stack duplicates of an identical configuration.
+    if (!custom.some((p) => settingsEqual(p.settings, settings))) {
+      const preset: Preset = {
+        id: `custom-${Date.now()}`,
+        name: `Custom ${summarize(settings)}`,
+        builtIn: false,
+        settings,
+      };
+      setCustom(await saveCustomPreset(preset));
+    }
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 1500);
   };
 
   const onDelete = async (id: string) => setCustom(await deleteCustomPreset(id));
@@ -208,7 +234,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Sound (bells &amp; beeps)</Text>
-            <Switch value={settings.soundEnabled} onValueChange={(v) => update({ soundEnabled: v })} />
+            <Switch {...SWITCH_COLORS} value={settings.soundEnabled} onValueChange={(v) => update({ soundEnabled: v })} />
           </View>
 
           <View style={styles.modeRow}>
@@ -249,16 +275,19 @@ export default function SettingsScreen() {
             style={({ pressed }) => [styles.soundCheck, pressed && styles.pressed]}
             accessibilityLabel="Sound check"
           >
-            <Text style={styles.soundCheckText}>🔔 Sound check</Text>
+            <Text style={styles.soundCheckText}>Sound check — play the bell</Text>
           </Pressable>
+          {settings.volume === 0 && (
+            <Text style={styles.hint}>Volume is 0% — bells are silent.</Text>
+          )}
 
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Voice announcements</Text>
-            <Switch value={settings.voiceEnabled} onValueChange={(v) => update({ voiceEnabled: v })} />
+            <Switch {...SWITCH_COLORS} value={settings.voiceEnabled} onValueChange={(v) => update({ voiceEnabled: v })} />
           </View>
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Combo caller</Text>
-            <Switch value={settings.comboCaller} onValueChange={(v) => update({ comboCaller: v })} />
+            <Switch {...SWITCH_COLORS} value={settings.comboCaller} onValueChange={(v) => update({ comboCaller: v })} />
           </View>
           {settings.comboCaller && (
             <>
@@ -284,7 +313,7 @@ export default function SettingsScreen() {
           onPress={onSaveCustom}
           style={({ pressed }) => [styles.saveBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.saveText}>Save as custom preset</Text>
+          <Text style={styles.saveText}>{justSaved ? 'Saved ✓' : 'Save as custom preset'}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

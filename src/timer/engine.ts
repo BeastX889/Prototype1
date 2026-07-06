@@ -219,9 +219,13 @@ export function computeState(
   const seg = schedule[idx];
   const next = schedule[idx + 1];
   const remainingMs = seg.endMs - clamped;
+  // Warning only applies when the round is longer than the warning window —
+  // mirrors buildSoundEvents' guard, so a short custom round (e.g. 8s round
+  // with a 10s warning) isn't rendered as "warning" from its first moment.
   const isWarning =
     seg.phase === 'work' &&
     settings.warningSec > 0 &&
+    seg.durationMs > settings.warningSec * SECOND &&
     remainingMs <= settings.warningSec * SECOND;
 
   return {

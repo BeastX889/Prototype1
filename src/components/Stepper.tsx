@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '@/theme';
 
 interface Props {
@@ -69,7 +69,14 @@ export function Stepper({
             onSubmitEditing={commit}
             autoFocus
             selectTextOnFocus
-            keyboardType={keyboardKind === 'time' ? 'numbers-and-punctuation' : 'number-pad'}
+            keyboardType={
+              keyboardKind === 'time'
+                ? // 'numbers-and-punctuation' is iOS-only; Android falls back to
+                  // the full keyboard. Use numeric there — parse() accepts plain
+                  // seconds without a colon.
+                  Platform.select({ ios: 'numbers-and-punctuation' as const, default: 'numeric' as const })
+                : 'number-pad'
+            }
             returnKeyType="done"
             style={[styles.value, styles.input]}
             accessibilityLabel={`Edit ${label}`}

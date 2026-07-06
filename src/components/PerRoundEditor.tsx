@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { Stepper } from '@/components/Stepper';
 import { mmss, parseMmss } from '@/format';
@@ -11,9 +10,13 @@ interface Props {
   onChange: (durations: number[]) => void;
 }
 
-/** Optional editor for per-round work durations. Off => [] (all rounds use roundSec). */
+/**
+ * Optional editor for per-round work durations. Fully controlled: the switch
+ * state IS `roundDurations.length > 0`, so applying a preset (which clears the
+ * array) closes the editor instead of desyncing from it.
+ */
 export function PerRoundEditor({ rounds, roundSec, roundDurations, onChange }: Props) {
-  const [open, setOpen] = useState(roundDurations.length > 0);
+  const open = roundDurations.length > 0;
 
   // Build a full-length array seeded from current durations / roundSec.
   const seeded = (overrideIndex?: number, overrideValue?: number) =>
@@ -21,16 +24,16 @@ export function PerRoundEditor({ rounds, roundSec, roundDurations, onChange }: P
       i === overrideIndex && overrideValue != null ? overrideValue : (roundDurations[i] ?? roundSec),
     );
 
-  const toggle = (on: boolean) => {
-    setOpen(on);
-    onChange(on ? seeded() : []);
-  };
-
   return (
     <View>
       <View style={styles.switchRow}>
         <Text style={styles.label}>Custom per-round times</Text>
-        <Switch value={open} onValueChange={toggle} />
+        <Switch
+          value={open}
+          onValueChange={(on) => onChange(on ? seeded() : [])}
+          trackColor={{ false: colors.surfaceAlt, true: colors.accent }}
+          thumbColor={colors.text}
+        />
       </View>
 
       {open && rounds > 30 && (

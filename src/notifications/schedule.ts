@@ -76,23 +76,30 @@ export async function initNotifications(): Promise<boolean> {
 const BACKGROUND_SOUNDS: ReadonlySet<SoundType> = new Set(['bell', 'endBell', 'finalBell', 'warning']);
 const MAX_SCHEDULED = 60;
 
+// Scheduling up to 60 notifications is a slow async loop; a cancel that lands
+// mid-loop (quick background→foreground, or pause right after backgrounding)
+// must abort the rest or the stragglers keep ringing over in-app playback.
+let generation = 0;
+
 export async function scheduleSoundEvents(events: SoundEvent[], elapsedMs: number): Promise<void> {
   if (Platform.OS === 'web') return;
   await cancelSoundEvents();
+  const gen = generation;
 
   const upcoming = events.filter((ev) => ev.atMs > elapsedMs && BACKGROUND_SOUNDS.has(ev.sound));
   const scheduled = upcoming.slice(0, MAX_SCHEDULED);
-  if (upcoming.length > scheduled.length) {
+  if (__DEV__ && upcoming.length > scheduled.length) {
     console.warn(`[timer] capped background notifications at ${MAX_SCHEDULED} (${upcoming.length} pending)`);
   }
 
   for (const ev of scheduled) {
+    if (gen !== generation) return; // cancelled mid-flight
     const seconds = (ev.atMs - elapsedMs) / 1000;
     if (seconds <= 0) continue; // already passed
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Boxing / MMA Timer',
+        title: 'Round Timer',
         body: ev.label,
         sound: SOUND_FILES[ev.sound],
       },
@@ -103,10 +110,15 @@ export async function scheduleSoundEvents(events: SoundEvent[], elapsedMs: numbe
       },
     });
   }
+  // A cancel may have raced the final schedule calls; sweep once more if stale.
+  if (gen !== generation) {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  }
 }
 
 /** Cancel all pending timer notifications (call on resume / pause / reset). */
 export async function cancelSoundEvents(): Promise<void> {
   if (Platform.OS === 'web') return;
+  generation++;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }

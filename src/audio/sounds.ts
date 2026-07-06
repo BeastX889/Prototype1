@@ -7,10 +7,10 @@ import {
 import type { SoundType } from '@/timer/engine';
 
 /**
- * In-app sound playback. The audio session is kept alive in the background so
- * bells still fire while the app is minimized. How bells interact with the
- * user's own music is configurable (mix / duck / solo) to solve the common
- * "I can't hear the bell over Spotify" complaint.
+ * In-app (foreground) sound playback; backgrounded bells arrive via scheduled
+ * notifications instead. How bells interact with the user's own music is
+ * configurable (mix / duck / solo) to solve the common "I can't hear the bell
+ * over Spotify" complaint.
  */
 
 export type AudioMode = 'mix' | 'duck' | 'solo';
@@ -36,7 +36,11 @@ let currentVolume = 1;
 async function applyMode(mode: AudioMode): Promise<void> {
   await setAudioModeAsync({
     playsInSilentMode: true,
-    shouldPlayInBackground: true,
+    // Backgrounded bells are delivered via scheduled notifications (the JS
+    // tick stops on background), so no background audio session is claimed —
+    // this also avoids Play FGS declarations and the iOS "declares background
+    // audio but never plays any" rejection trigger.
+    shouldPlayInBackground: false,
     interruptionMode: INTERRUPTION[mode],
   });
 }
@@ -74,8 +78,11 @@ export function playSound(sound: SoundType, enabled: boolean): void {
   if (!player) return;
   try {
     player.volume = currentVolume;
-    player.seekTo(0);
-    player.play();
+    // seekTo is async — playing before the rewind lands can clip a replay.
+    void player
+      .seekTo(0)
+      .then(() => player.play())
+      .catch(() => {});
   } catch {
     // playback failures shouldn't crash the timer
   }
