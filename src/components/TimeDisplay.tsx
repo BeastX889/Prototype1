@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { formatTime, type Phase } from '@/timer/engine';
 import { PHASE_LABEL, colors } from '@/theme';
 import { ProgressRing } from '@/components/ProgressRing';
@@ -33,20 +33,38 @@ export function TimeDisplay({
   nextPhase,
   nextDurationMs,
 }: Props) {
+  // Fit small phones (320dp) and don't let long times ("30:00") graze the ring.
+  const { width } = useWindowDimensions();
+  const ringSize = Math.min(290, width - 48);
+  const timeFontSize = Math.round(ringSize * 0.28);
+
   const progress = segmentDurationMs > 0 ? remainingMs / segmentDurationMs : 0;
+
+  // "Next: Round 4 · 3:00" — say WHICH round is next, not just "Round".
+  let nextText: string | null = null;
+  if (nextPhase) {
+    const nextRound = nextPhase === 'work' ? (phase === 'rest' ? round + 1 : round) : null;
+    const label = nextRound ? `${NEXT_LABEL.work} ${nextRound}` : NEXT_LABEL[nextPhase];
+    nextText = `Next: ${label} · ${formatTime(nextDurationMs)}`;
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.phase}>{PHASE_LABEL[phase]}</Text>
 
       <ProgressRing
-        size={290}
+        size={ringSize}
         strokeWidth={12}
         progress={phase === 'done' ? 0 : progress}
         color="#ffffff"
         trackColor={colors.ringTrack}
       >
-        <Text style={styles.time} accessibilityLabel={`${formatTime(remainingMs)} remaining`}>
+        <Text
+          style={[styles.time, { fontSize: timeFontSize, lineHeight: timeFontSize + 6, maxWidth: ringSize - 48 }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          accessibilityLabel={`${formatTime(remainingMs)} remaining`}
+        >
           {formatTime(remainingMs)}
         </Text>
         {phase !== 'done' && (
@@ -58,11 +76,7 @@ export function TimeDisplay({
 
       {phase !== 'done' && (
         <View style={styles.meta}>
-          {nextPhase && (
-            <Text style={styles.metaText}>
-              Next: {NEXT_LABEL[nextPhase]} {formatTime(nextDurationMs)}
-            </Text>
-          )}
+          {nextText && <Text style={styles.metaText}>{nextText}</Text>}
           <Text style={styles.metaText}>Total left {formatTime(totalRemainingMs)}</Text>
         </View>
       )}
@@ -81,10 +95,9 @@ const styles = StyleSheet.create({
   },
   time: {
     color: colors.text,
-    fontSize: 86,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 92,
+    textAlign: 'center',
   },
   round: { color: colors.textDim, fontSize: 20, fontWeight: '700', letterSpacing: 1, marginTop: 2 },
   meta: { alignItems: 'center', marginTop: 22, gap: 4 },

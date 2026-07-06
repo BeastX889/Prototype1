@@ -9,6 +9,9 @@ import * as Speech from 'expo-speech';
  */
 
 let speaking = false;
+// Each utterance gets an id; stale callbacks (e.g. the onStopped of an
+// utterance we just interrupted) must not clear the flag for the new one.
+let utterId = 0;
 
 interface SayOptions {
   /** Announcements interrupt; combos pass false and yield to in-progress speech. */
@@ -22,18 +25,16 @@ export function say(text: string, { interrupt = false }: SayOptions = {}): void 
     } else if (speaking) {
       return; // a combo defers to whatever is already speaking
     }
+    const id = ++utterId;
     speaking = true;
+    const clear = () => {
+      if (id === utterId) speaking = false;
+    };
     Speech.speak(text, {
       rate: 1.0,
-      onDone: () => {
-        speaking = false;
-      },
-      onStopped: () => {
-        speaking = false;
-      },
-      onError: () => {
-        speaking = false;
-      },
+      onDone: clear,
+      onStopped: clear,
+      onError: clear,
     });
   } catch {
     speaking = false;
@@ -46,5 +47,6 @@ export function stopSpeech(): void {
   } catch {
     // ignore
   }
+  utterId++;
   speaking = false;
 }

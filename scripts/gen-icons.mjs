@@ -59,3 +59,5 @@ await write('android-icon-monochrome.png', svg({ size: 1024, bg: null, mono: tru
 await write('splash-icon.png', svg({ size: 512, bg: null, scale: 0.9 }));
 // Favicon.
 await write('favicon.png', svg({ size: 64, bg: BG, scale: 0.92 }));
+// Android status-bar notification icon: white silhouette on transparent, 96x96.
+await write('notification-icon.png', svg({ size: 96, bg: null, mono: true, scale: 0.9 }));

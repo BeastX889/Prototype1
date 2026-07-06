@@ -129,6 +129,24 @@ test('buildSoundEvents: finalBell fires at cool-down end when present', () => {
   assert.ok(!ev.some((e) => e.sound === 'finalBell' && e.atMs === 180_000));
 });
 
+test('computeState: no warning state for rounds shorter than the warning window', () => {
+  // 8s custom round with a 10s warning: must not show warning from t=0
+  // (mirrors the sound-event guard, which never schedules the warning beep).
+  const s = normalizeSettings({
+    prepSec: 0,
+    roundSec: 180,
+    restSec: 0,
+    rounds: 2,
+    warningSec: 10,
+    roundDurations: [8, 180],
+  });
+  const sched = buildSchedule(s);
+  // 2s into the 8s round 1 => within 10s of its end, but round is too short to warn
+  assert.equal(computeState(sched, s, 2_000).isWarning, false);
+  // round 2 (180s) still warns normally in its final 10s
+  assert.equal(computeState(sched, s, 8_000 + 175_000).isWarning, true);
+});
+
 test('buildSpeechEvents: empty when voice disabled', () => {
   assert.deepEqual(buildSpeechEvents(buildSchedule(boxing), boxing), []);
 });

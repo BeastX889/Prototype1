@@ -11,10 +11,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.beastx889.roundtimer",
-      "infoPlist": {
-        "UIBackgroundModes": ["audio"]
-      }
+      "bundleIdentifier": "com.beastx889.roundtimer"
     },
     "android": {
       "package": "com.beastx889.roundtimer",
@@ -32,10 +29,19 @@
     },
     "plugins": [
       "expo-router",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false,
+          "microphonePermission": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
       [
         "expo-notifications",
         {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#0b9b3d",
           "sounds": [
             "./assets/sounds/bell.wav",
             "./assets/sounds/end-bell.wav",

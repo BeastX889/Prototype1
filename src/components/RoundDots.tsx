@@ -1,10 +1,12 @@
 import { StyleSheet, View } from 'react-native';
+import type { Phase } from '@/timer/engine';
 import { colors } from '@/theme';
 
 interface Props {
   /** Current round (1-based). */
   round: number;
   totalRounds: number;
+  phase: Phase;
 }
 
 const MAX_DOTS = 12;
@@ -13,8 +15,10 @@ const MAX_DOTS = 12;
  * Shows session progress: a row of dots (filled = done/current) when the round
  * count is small, or a slim progress bar for larger counts to avoid overflow.
  */
-export function RoundDots({ round, totalRounds }: Props) {
-  const current = Math.min(round, totalRounds);
+export function RoundDots({ round, totalRounds, phase }: Props) {
+  // Before round 1 actually starts (prep/warm-up), no dot is filled yet.
+  const started = phase !== 'prep' && phase !== 'warmup';
+  const current = started ? Math.min(round, totalRounds) : 0;
 
   if (totalRounds <= MAX_DOTS) {
     return (

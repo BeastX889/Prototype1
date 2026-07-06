@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { formatTime } from '@/timer/engine';
+import { formatClock } from '@/format';
 import {
   clearHistory,
   computeStats,
@@ -34,9 +34,20 @@ export default function HistoryScreen() {
     refresh();
   }, []);
 
-  const onClear = async () => {
-    await clearHistory();
-    refresh();
+  const onClear = () => {
+    const doClear = async () => {
+      await clearHistory();
+      refresh();
+    };
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      if (window.confirm('Clear all workout history? This cannot be undone.')) void doClear();
+      return;
+    }
+    Alert.alert('Clear history?', 'All workouts and your streak will be deleted. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Clear', style: 'destructive', onPress: () => void doClear() },
+    ]);
   };
 
   return (
@@ -51,7 +62,7 @@ export default function HistoryScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.statsRow}>
           <Stat label="Sessions" value={`${stats.totalSessions}`} />
-          <Stat label="Total time" value={formatTime(stats.totalMs)} />
+          <Stat label="Total time" value={formatClock(stats.totalMs)} />
           <Stat label="Rounds" value={`${stats.totalRounds}`} />
           <Stat label="Streak" value={`${stats.currentStreakDays}d`} />
         </View>
@@ -69,7 +80,7 @@ export default function HistoryScreen() {
                 <Text style={styles.itemRounds}>
                   {r.roundsCompleted}/{r.roundsPlanned} rounds
                 </Text>
-                <Text style={styles.itemSub}>{formatTime(r.totalMs)}</Text>
+                <Text style={styles.itemSub}>{formatClock(r.totalMs)}</Text>
               </View>
             </View>
           ))

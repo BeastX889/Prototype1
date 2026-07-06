@@ -18,6 +18,16 @@ export const parseMmss = (text: string): number | null => {
   return Number.isNaN(n) ? null : n;
 };
 
+/** Milliseconds -> "M:SS", or "H:MM:SS" once it crosses an hour (for totals). */
+export const formatClock = (ms: number): string => {
+  const totalSec = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h === 0) return `${m}:${s.toString().padStart(2, '0')}`;
+  return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
 /** Parse a plain integer, ignoring non-digit characters (e.g. a trailing "s"). */
 export const parseCount = (text: string): number | null => {
   const digits = text.replace(/[^0-9]/g, '');

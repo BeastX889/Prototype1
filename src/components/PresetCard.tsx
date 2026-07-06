@@ -14,6 +14,7 @@ export function PresetCard({ preset, selected, onPress, onDelete }: Props) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityLabel={`Apply preset ${preset.name}`}
       style={({ pressed }) => [styles.card, selected && styles.selected, pressed && styles.pressed]}
     >
       <View style={styles.info}>
