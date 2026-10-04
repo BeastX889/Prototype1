@@ -75,10 +75,17 @@ Whether you're shadowboxing at home, hitting the heavy bag, or running pads, Rou
   timer's core function."
 - **Health apps**: Activity & fitness, workout timer only. No health data is
   read, stored, or shared.
-- Effective Android permissions: POST_NOTIFICATIONS, USE_EXACT_ALARM,
-  SCHEDULE_EXACT_ALARM (Android ≤ 12L only), VIBRATE, WAKE_LOCK,
-  MODIFY_AUDIO_SETTINGS, INTERNET (framework default; the app makes no network
-  requests). No microphone, camera, location, storage, or contacts.
+- Effective Android permissions in the built bundle (checked with bundletool):
+  - **App:** POST_NOTIFICATIONS, USE_EXACT_ALARM, SCHEDULE_EXACT_ALARM
+    (Android ≤ 12L only), VIBRATE, WAKE_LOCK, MODIFY_AUDIO_SETTINGS.
+  - **Added by the notifications library:** RECEIVE_BOOT_COMPLETED (restores
+    scheduled bells after a reboot), launcher-badge permissions for various
+    phone makers, and an unused Firebase push receiver (c2dm RECEIVE,
+    ACCESS_NETWORK_STATE). The app has no Firebase configuration and never
+    registers for push.
+  - **Framework default:** INTERNET. The app makes no network requests.
+  - **None** of these is a runtime prompt except notifications. No microphone,
+    camera, location, storage, or contacts.
 
 ## Review notes (both stores)
 
