@@ -1,0 +1,71 @@
+name: Android release bundle
+
+# Builds the Play Store .aab on GitHub's runners (which ship the Android SDK).
+# Output is signed with the throwaway debug key only — the repo is public, so
+# the real upload key is never stored here; the bundle is re-signed with it
+# outside CI before uploading to Google Play.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'Android versionCode — must be higher than every previous Play upload'
+        required: true
+        default: '1'
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set versionCode
+        env:
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            const vc = Number(process.env.VERSION_CODE);
+            if (!Number.isInteger(vc) || vc < 1) throw new Error('version_code must be a positive integer');
+            app.expo.android.versionCode = vc;
+            fs.writeFileSync('app.json', JSON.stringify(app, null, 2));
+            console.log('versionCode =', vc, 'versionName =', app.expo.version);
+          "
+
+      - name: Generate native Android project
+        env:
+          CI: '1'
+          EXPO_NO_TELEMETRY: '1'
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Show effective permissions
+        run: grep -E 'uses-permission' android/app/src/main/AndroidManifest.xml
+
+      - name: Build release bundle
+        working-directory: android
+        run: ./gradlew :app:bundleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 7
+          if-no-files-found: error
