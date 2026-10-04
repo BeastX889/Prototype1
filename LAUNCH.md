@@ -8,7 +8,7 @@ only you can do: the Play Console account, the forms, and clicking upload.
 
 | Item | Where |
 |---|---|
-| Signed bundle `round-timer-1.0.0-vc1.aab` | Delivered to you directly (not in this repo) |
+| Signed bundle `round-timer-1.0.0-vc1-play.aab` | Delivered to you directly as two parts (`.part0`, `.part1`); see "Rejoin the bundle" below |
 | Upload key `roundtimer-upload.jks` + `KEYSTORE-CREDENTIALS.txt` | Delivered to you directly. **Back these up somewhere safe now.** |
 | Listing text and form answers | `store/listing.md` |
 | Icon 512×512, feature graphic, 5 phone screenshots | `store/assets/` (`play-icon-512.png`, `feature-graphic.png`, `play-*.png`) |
@@ -16,6 +16,31 @@ only you can do: the Play Console account, the forms, and clicking upload.
 
 > **Package name `com.beastx889.roundtimer` is permanent** once the first bundle
 > is uploaded. It can never be changed for this listing.
+
+### Rejoin the bundle
+
+The bundle was too large to send as one file, so it arrived in two parts. Put
+both in the same folder, then:
+
+- **Windows (Command Prompt):**
+  `copy /b round-timer-1.0.0-vc1-play.aab.part0 + round-timer-1.0.0-vc1-play.aab.part1 round-timer-1.0.0-vc1-play.aab`
+- **macOS / Linux:**
+  `cat round-timer-1.0.0-vc1-play.aab.part0 round-timer-1.0.0-vc1-play.aab.part1 > round-timer-1.0.0-vc1-play.aab`
+
+Check the result before uploading. Run `certutil -hashfile round-timer-1.0.0-vc1-play.aab SHA256`
+on Windows, or `shasum -a 256 …` on macOS/Linux. It must print
+`35fd068358db1341a957fd0e8e09c4394fdd6e51c5cc6f03f95578d514c22b79` (48.7 MiB).
+
+About this bundle: version 1.0.0, versionCode 1, target Android 16 (API 36),
+minimum Android 7 (API 24), and native code for arm64-v8a, armeabi-v7a, x86
+and x86_64. It's signed with your upload key (certificate SHA-256
+`FF:A3:4F:88:…:58:A4`) and validated with bundletool 1.18.3. Native debug
+symbols were left out to keep the file small. If Play Console shows a "native
+debug symbols" warning, you can safely ignore it.
+
+> **Don't use the GitHub pre-release `android-vc1-run2`.** That copy is signed
+> with a throwaway debug key and Play will reject it. Please delete it under
+> **Releases** on GitHub; this session isn't allowed to.
 
 ---
 
@@ -36,7 +61,7 @@ only you can do: the Play Console account, the forms, and clicking upload.
 2. When asked about app signing, keep **"Use Google-generated key"** (Play App
    Signing). Google holds the final signing key. Your `.jks` is only the
    **upload key**, so it can be reset if it's ever lost.
-3. Upload `round-timer-1.0.0-vc1.aab`. Release name: `1.0.0 (1)`. Notes: `First release.`
+3. Upload `round-timer-1.0.0-vc1-play.aab`. Release name: `1.0.0 (1)`. Notes: `First release.`
 4. **Next → Save and publish.** Add yourself as a tester (Testers tab → email
    list), open the opt-in link on your phone, and install from Play.
 
