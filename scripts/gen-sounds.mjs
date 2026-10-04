@@ -83,7 +83,7 @@ const silence = (s) => new Float32Array(sec(s));
 writeWav('bell.wav', bell(784, 1.4));
 
 // Round-end bell: a double ding, slightly lower / more urgent.
-writeWav('end-bell.wav', concat(bell(660, 0.6), silence(0.05), bell(660, 1.1)));
+writeWav('end_bell.wav', concat(bell(660, 0.6), silence(0.05), bell(660, 1.1)));
 
 // Warning (10s left): three quick rising beeps.
 writeWav('warning.wav', concat(beep(900, 0.12), silence(0.08), beep(900, 0.12), silence(0.08), beep(1200, 0.18)));
@@ -93,7 +93,7 @@ writeWav('beep.wav', beep(1000, 0.14));
 
 // Final bell (end of the last round): a triple gong — the classic "fight over" signal.
 writeWav(
-  'final-bell.wav',
+  'final_bell.wav',
   concat(bell(587, 0.9), silence(0.06), bell(587, 0.9), silence(0.06), bell(587, 1.4)),
 );
 

@@ -23,8 +23,8 @@ const INTERRUPTION: Record<AudioMode, InterruptionMode> = {
 
 const SOURCES: Record<SoundType, number> = {
   bell: require('@/assets/sounds/bell.wav'),
-  endBell: require('@/assets/sounds/end-bell.wav'),
-  finalBell: require('@/assets/sounds/final-bell.wav'),
+  endBell: require('@/assets/sounds/end_bell.wav'),
+  finalBell: require('@/assets/sounds/final_bell.wav'),
   warning: require('@/assets/sounds/warning.wav'),
   beep: require('@/assets/sounds/beep.wav'),
 };

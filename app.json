@@ -15,12 +15,18 @@
     },
     "android": {
       "package": "com.beastx889.roundtimer",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#10161d",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "permissions": ["POST_NOTIFICATIONS", "WAKE_LOCK"],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -44,8 +50,8 @@
           "color": "#0b9b3d",
           "sounds": [
             "./assets/sounds/bell.wav",
-            "./assets/sounds/end-bell.wav",
-            "./assets/sounds/final-bell.wav",
+            "./assets/sounds/end_bell.wav",
+            "./assets/sounds/final_bell.wav",
             "./assets/sounds/warning.wav",
             "./assets/sounds/beep.wav"
           ]
@@ -58,7 +64,8 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 120
         }
-      ]
+      ],
+      "./plugins/withExactAlarms"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -15,8 +15,8 @@ import type { SoundEvent, SoundType } from '@/timer/engine';
 
 const SOUND_FILES: Record<SoundType, string> = {
   bell: 'bell.wav',
-  endBell: 'end-bell.wav',
-  finalBell: 'final-bell.wav',
+  endBell: 'end_bell.wav',
+  finalBell: 'final_bell.wav',
   warning: 'warning.wav',
   beep: 'beep.wav',
 };
