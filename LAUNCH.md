@@ -1,102 +1,123 @@
-# LAUNCH.md — Shipping Round Timer to Google Play & the Apple App Store
+# LAUNCH.md — Publishing Round Timer on Google Play
 
-Everything code-side is done. The steps below are split into **things only you
-can do** (accounts, payments, console forms) and commands you run. Store copy,
-privacy policy, and asset files are already prepared:
+Everything code-side is done. The signed bundle for version 1 was built on
+GitHub's runners and signed with your private upload key. These are the steps
+only you can do: the Play Console account, the forms, and clicking upload.
 
-- Listing copy & questionnaire answers: `store/listing.md`
-- Screenshots + feature graphic: `store/assets/` (regenerate: `npm run gen:store-assets`)
-- Privacy policy (live after any master deploy): https://beastx889.github.io/Prototype1/privacy.html
-- Icons/splash/notification icon: `assets/images/` (regenerate: `node scripts/gen-icons.mjs`)
+**What you need in hand**
 
-> Note: `app.json` has `experiments.baseUrl: "/Prototype1"` **only on master** for
-> the GitHub Pages web build. It affects web exports only — it is harmless to the
-> Android/iOS builds and needs no change for the stores.
+| Item | Where |
+|---|---|
+| Signed bundle `round-timer-1.0.0-vc1.aab` | Delivered to you directly (not in this repo) |
+| Upload key `roundtimer-upload.jks` + `KEYSTORE-CREDENTIALS.txt` | Delivered to you directly. **Back these up somewhere safe now.** |
+| Listing text and form answers | `store/listing.md` |
+| Icon 512×512, feature graphic, 5 phone screenshots | `store/assets/` (`play-icon-512.png`, `feature-graphic.png`, `play-*.png`) |
+| Privacy policy URL | https://beastx889.github.io/Prototype1/privacy.html |
+
+> **Package name `com.beastx889.roundtimer` is permanent** once the first bundle
+> is uploaded. It can never be changed for this listing.
 
 ---
 
-## 0. One-time EAS setup (you)
+## 1. Create the developer account (one time)
 
-```bash
-npm i -g eas-cli
-eas login          # free Expo account
-eas init           # links the project (writes projectId into app.json)
-```
+1. Go to https://play.google.com/console and sign up. It costs **$25 once**.
+2. Choose a **Personal** account and complete identity verification. This can
+   take a few days.
 
-## 1. Google Play (do this first — you can test on your own phone)
+## 2. Create the app
 
-**You:** create a [Play Console](https://play.google.com/console) developer
-account — $25 one-time. Identity verification can take a day or two.
+1. **Create app**. Name: `Round Timer — Boxing & MMA`. Default language: English (US).
+   Type: **App**. Price: **Free**. Accept the declarations.
 
-1. **Test build on your phone first** (the reliability promise must be verified
-   on a real device before submitting):
-   ```bash
-   eas build -p android --profile preview     # installable APK
-   ```
-   Install it, then check: bells ring with the screen locked; bells audible over
-   Spotify (try Duck vs Solo in Setup); timer accurate after 10+ min locked.
-2. **Production build** (Play requires an app bundle):
-   ```bash
-   eas build -p android --profile production
-   ```
-3. In Play Console → Create app → fill the listing from `store/listing.md`
-   (name, short/full description, category Health & Fitness).
-4. Upload graphics from `store/assets/`: feature graphic (1024×500) + phone
-   screenshots.
-5. **Data safety form:** answer "does not collect or share any user data" (see
-   `store/listing.md`); privacy policy URL:
-   `https://beastx889.github.io/Prototype1/privacy.html`.
-6. Content rating questionnaire → Everyone. App access → "All functionality
-   available without special access."
-7. Submit either by uploading the `.aab` from the EAS build page, or:
-   ```bash
-   eas submit -p android    # needs a service-account key; EAS walks you through it
-   ```
-8. Start with **Internal testing** track (instant), then promote to Production.
-   First production review typically takes a few days; new personal accounts may
-   need 14 days of closed testing with 12+ testers before production — Play
-   Console will tell you if that applies.
+## 3. Upload the bundle to Internal testing first
 
-## 2. Apple App Store
+1. **Test and release → Testing → Internal testing → Create new release.**
+2. When asked about app signing, keep **"Use Google-generated key"** (Play App
+   Signing). Google holds the final signing key. Your `.jks` is only the
+   **upload key**, so it can be reset if it's ever lost.
+3. Upload `round-timer-1.0.0-vc1.aab`. Release name: `1.0.0 (1)`. Notes: `First release.`
+4. **Next → Save and publish.** Add yourself as a tester (Testers tab → email
+   list), open the opt-in link on your phone, and install from Play.
 
-**You:** enroll in the [Apple Developer Program](https://developer.apple.com/programs/)
-— $99/year. No Mac is required when building with EAS, but be aware:
-**without an iPhone you cannot test the iOS build yourself** — you'd be
-submitting untested-on-device software. If possible, borrow an iPhone and use
-TestFlight before release.
+**Test on your phone before going further:** start a round, lock the screen,
+and confirm the bell rings at round end. Play Spotify and confirm the bell is
+audible (try Setup → Over music → Duck vs Solo). Leave the phone locked through
+a 10-minute session and confirm the time and bells stay accurate.
 
-1. ```bash
-   eas build -p ios --profile production
-   ```
-   EAS prompts for your Apple ID and creates certificates/profiles for
-   `com.beastx889.roundtimer` automatically.
-2. Create the app record in [App Store Connect](https://appstoreconnect.apple.com)
-   (name, bundle ID, category) — or let `eas submit` create it:
-   ```bash
-   eas submit -p ios
-   ```
-3. Fill the listing from `store/listing.md` (subtitle, description, keywords),
-   upload the 6.7" screenshots from `store/assets/`.
-4. **App Privacy:** "Data Not Collected." Privacy policy URL as above.
-5. Add the review notes from `store/listing.md` (explains the notification bells).
-6. TestFlight first if you can get an iPhone; otherwise submit for review.
+## 4. Fill in "App content" (Policy → App content)
 
-## 3. After launch
+Answers are also in `store/listing.md`.
 
-- Every future release: bump nothing manually — EAS `autoIncrement` manages
-  versionCode/buildNumber; just run the production builds + submit again.
-- Watch Play Console "Android vitals" / App Store crash reports. (When you want
-  proper crash reporting, ask me to add Sentry — deliberately left out so the
-  "no data leaves your device" privacy declaration stays exactly true.)
-- Review replies matter for ranking — answer the first ones personally.
+| Form | Answer |
+|---|---|
+| Privacy policy | `https://beastx889.github.io/Prototype1/privacy.html` |
+| App access | All functionality is available without special access |
+| Ads | No, the app has no ads |
+| Content rating | Questionnaire: category "All other app types", answer No to everything → Everyone / PEGI 3 |
+| Target audience | **13 and over** (choosing under-13 pulls in the Families policy) |
+| Data safety | **No data collected, no data shared** |
+| **Exact alarms** | Declare that the core functionality is a **timer**: "Interval timer for boxing/MMA. Exact alarms ring the round-start/round-end bells at the exact second while the app is in the background." |
+| Health apps | Activity & fitness: workout timer only, no health data |
+| Government / financial / news | No |
 
-## Known review risks (honest list)
+## 5. Store listing (Grow → Store presence → Main store listing)
 
-- **iOS untested on device** (no iPhone): TTS voice, notification sounds, and
-  haptics are all standard APIs, but Apple review may catch device-specific
-  issues we can't see. Fixable per rejection feedback.
-- Play may ask why the app schedules exact-ish notifications — the review note
-  in `store/listing.md` covers it (round bells).
-- The app declares no background modes and requests only notifications +
-  vibration — permission review should be clean (microphone permission was
-  explicitly disabled in `app.json`).
+- **App name / short description / full description:** copy from `store/listing.md`.
+- **App icon:** `store/assets/play-icon-512.png`
+- **Feature graphic:** `store/assets/feature-graphic.png`
+- **Phone screenshots:** `store/assets/play-1-idle.png` … `play-5-history.png`
+- **Category:** Health & Fitness. **Contact email:** yours.
+
+## 6. Closed test → production
+
+New **personal** developer accounts must run a **closed test with at least 12
+testers who stay opted in for 14 consecutive days** before Play lets you apply
+for production.
+
+1. **Testing → Closed testing → Create track.** Promote the same release (or
+   upload it again), add a Google Group or email list of 12+ friends, and share
+   the opt-in link.
+2. After 14 days, go to **Dashboard → Apply for production** and answer the
+   short questionnaire about the test.
+3. Once approved, **Production → Create new release → add from library →
+   rollout.** The first review usually takes a few days.
+
+---
+
+## Shipping updates later
+
+1. Make your changes, then raise `version` in `app.json` (e.g. `1.0.1`).
+2. **One-time setup for automatic signing.** In GitHub, open the repo →
+   **Settings → Secrets and variables → Actions → New repository secret** and add:
+   - `ANDROID_UPLOAD_KEYSTORE_BASE64` = the contents of `roundtimer-upload.jks.base64.txt`
+   - `ANDROID_UPLOAD_KEYSTORE_PASSWORD` = the store password from `KEYSTORE-CREDENTIALS.txt`
+
+   You can do this from a phone browser. Secrets are encrypted and never shown
+   in logs.
+3. Go to **Actions → Android release bundle → Run workflow** and set
+   `version_code` higher than any previous upload (2, 3, …). This also works
+   from a phone browser.
+4. Download the `app-release-aab` artifact when the run finishes (~20 min) and
+   upload it as a new release in Play Console.
+
+Without the secrets, the workflow still builds, but the bundle is signed with a
+throwaway debug key and Play will reject it. A Claude session can re-sign it
+for you if you provide the key.
+
+## Apple App Store (later)
+
+Requires the Apple Developer Program ($99/year) and, realistically, an iPhone to
+test on. The iOS bundle ID `com.beastx889.roundtimer` is configured. Use
+`eas build -p ios --profile production` and `eas submit -p ios` from your
+laptop. Listing text and 6.7" screenshots (`store/assets/ios-*.png`) are ready.
+
+## Known limitations (honest list)
+
+- **Deep Doze.** If the phone sits completely still with the screen off for a
+  long time (roughly 30+ minutes), Android can still rate-limit even exact
+  alarms. Short and medium sessions are fine. A foreground service ("timer
+  running" notification) would close this gap if testers report late bells on
+  long sessions.
+- **Voice and combo calls** only speak while the app is in the foreground.
+  Background transitions are covered by the bells.
