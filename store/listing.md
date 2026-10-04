@@ -57,6 +57,7 @@ Whether you're shadowboxing at home, hitting the heavy bag, or running pads, Rou
 ## Content rating / age
 
 - No objectionable content; questionnaire answers: no violence, no user content, no data collection → Everyone / 4+.
+- Play **Target audience: 13 and over**. Choosing under-13 pulls in the Families policy.
 
 ## Data safety (Play) & App Privacy (iOS) answers
 
@@ -65,10 +66,24 @@ Whether you're shadowboxing at home, hitting the heavy bag, or running pads, Rou
 - iOS "Data Not Collected" label applies.
 - Privacy policy URL: https://beastx889.github.io/Prototype1/privacy.html
 
+## Play permission declarations
+
+- **Exact alarms (`USE_EXACT_ALARM`)**: core functionality = **timer**.
+  Justification: "Round Timer is an interval timer for boxing/MMA. Exact alarms
+  ring the round-start and round-end bells at the exact second while the app is
+  in the background; inexact alarms would ring the bell late and break the
+  timer's core function."
+- **Health apps**: Activity & fitness, workout timer only. No health data is
+  read, stored, or shared.
+- Effective Android permissions: POST_NOTIFICATIONS, USE_EXACT_ALARM,
+  SCHEDULE_EXACT_ALARM (Android ≤ 12L only), VIBRATE, WAKE_LOCK,
+  MODIFY_AUDIO_SETTINGS, INTERNET (framework default; the app makes no network
+  requests). No microphone, camera, location, storage, or contacts.
+
 ## Review notes (both stores)
 
 "Round Timer is an offline interval timer for boxing/MMA training. It uses local
-notifications to ring round bells while backgrounded, and text-to-speech for
-optional voice announcements. It has no login, no network access, and collects
-no data. To test: tap START; lock the screen mid-round to hear the bell fire as
-a notification."
+notifications with exact alarms to ring round bells on time while backgrounded,
+and text-to-speech for optional voice announcements. It has no login, no network
+access, and collects no data. To test: tap START, then lock the screen mid-round
+to hear the bell fire as a notification."
