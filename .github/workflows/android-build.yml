@@ -14,9 +14,13 @@ on:
         description: 'Android versionCode — must be higher than every previous Play upload'
         required: true
         default: '1'
+      publish_release:
+        description: 'Also attach the .aab to a GitHub pre-release (for downloading outside GitHub Actions)'
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write # only used by the optional publish_release step
 
 jobs:
   bundle:
@@ -103,3 +107,19 @@ jobs:
           path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 7
           if-no-files-found: error
+
+      - name: Publish bundle as a pre-release
+        if: inputs.publish_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_CODE: ${{ inputs.version_code }}
+          SIGNED: ${{ steps.key.outputs.signed }}
+        run: |
+          tag="android-vc${VERSION_CODE}-run${GITHUB_RUN_NUMBER}"
+          file="round-timer-vc${VERSION_CODE}.aab"
+          cp android/app/build/outputs/bundle/release/app-release.aab "$file"
+          if [ "$SIGNED" = "true" ]; then note="Signed with the upload key — ready to upload to Google Play."
+          else note="Debug-signed (no upload-key secrets). Re-sign with the upload key before uploading to Google Play."; fi
+          gh release create "$tag" "$file" --prerelease --target "$GITHUB_SHA" \
+            --title "Android bundle vc${VERSION_CODE} (CI build #${GITHUB_RUN_NUMBER})" \
+            --notes "Built by the Android release bundle workflow. $note"
