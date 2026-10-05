@@ -119,4 +119,4 @@ eas build --profile production --platform all
 eas submit --platform ios      # and: eas submit --platform android
 ```
 
-The bundle identifiers are already set in `app.json` (`com.beastx889.roundtimer`).
+The bundle identifiers are already set in `app.json` (`com.lumiolab.roundtimer`).

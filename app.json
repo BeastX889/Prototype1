@@ -11,10 +11,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.beastx889.roundtimer"
+      "bundleIdentifier": "com.lumiolab.roundtimer"
     },
     "android": {
-      "package": "com.beastx889.roundtimer",
+      "package": "com.lumiolab.roundtimer",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#10161d",

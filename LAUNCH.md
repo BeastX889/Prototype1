@@ -1,5 +1,14 @@
 # LAUNCH.md — Publishing Round Timer on Google Play
 
+> **Update 5 Oct 2026:** the app is on Play under the **LumioLab** account
+> (package `com.lumiolab.roundtimer`, Console app id 4972956148274814937). The
+> v1 bundle was rebuilt locally and signed with a new upload key at
+> `~/keystores/roundtimer-upload.jks` (alias `upload`; passwords in the gitignored
+> repo-root `key.properties`). The earlier cloud-built bundle and its key were
+> never uploaded and are obsolete. Local builds: `npx expo prebuild -p android`,
+> then `./gradlew :app:bundleRelease` with JDK 21 (Android Studio's JBR) and the
+> `-Pandroid.injected.signing.*` flags, as in the CI workflow.
+
 Everything code-side is done. The signed bundle for version 1 was built on
 GitHub's runners and signed with your private upload key. These are the steps
 only you can do: the Play Console account, the forms, and clicking upload.
@@ -14,7 +23,7 @@ only you can do: the Play Console account, the forms, and clicking upload.
 | Icon 512×512, feature graphic, 5 phone screenshots | `store/assets/` (`play-icon-512.png`, `feature-graphic.png`, `play-*.png`) |
 | Privacy policy URL | https://beastx889.github.io/Prototype1/privacy.html |
 
-> **Package name `com.beastx889.roundtimer` is permanent** once the first bundle
+> **Package name `com.lumiolab.roundtimer` is permanent** once the first bundle
 > is uploaded. It can never be changed for this listing.
 
 ### Rejoin the bundle
@@ -133,7 +142,7 @@ for you if you provide the key.
 ## Apple App Store (later)
 
 Requires the Apple Developer Program ($99/year) and, realistically, an iPhone to
-test on. The iOS bundle ID `com.beastx889.roundtimer` is configured. Use
+test on. The iOS bundle ID `com.lumiolab.roundtimer` is configured. Use
 `eas build -p ios --profile production` and `eas submit -p ios` from your
 laptop. Listing text and 6.7" screenshots (`store/assets/ios-*.png`) are ready.
 

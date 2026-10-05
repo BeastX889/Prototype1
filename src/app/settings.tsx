@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { type TimerSettings } from '@/timer/engine';
@@ -25,6 +26,8 @@ const AUDIO_MODES: { key: TimerSettings['audioMode']; label: string }[] = [
   { key: 'duck', label: 'Duck' },
   { key: 'solo', label: 'Solo' },
 ];
+
+const PRIVACY_URL = 'https://beastx889.github.io/Prototype1/privacy.html';
 
 // Default Switch colors are grey-on-grey on the dark theme.
 const SWITCH_COLORS = {
@@ -315,6 +318,19 @@ export default function SettingsScreen() {
         >
           <Text style={styles.saveText}>{justSaved ? 'Saved ✓' : 'Save as custom preset'}</Text>
         </Pressable>
+
+        <View style={styles.about}>
+          <Text style={styles.hint}>
+            Round Timer {Constants.expoConfig?.version ?? ''} · LumioLab
+          </Text>
+          <Pressable
+            onPress={() => Linking.openURL(PRIVACY_URL)}
+            accessibilityRole="link"
+            hitSlop={8}
+          >
+            <Text style={styles.link}>Privacy policy</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -378,5 +394,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   pressed: { opacity: 0.7 },
+  about: { alignItems: 'center', marginTop: 24, gap: 4 },
+  link: { color: colors.accent, fontSize: 14, fontWeight: '600' },
   saveText: { color: colors.text, fontSize: 17, fontWeight: '700' },
 });
