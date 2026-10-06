@@ -91,7 +91,7 @@ Answers are also in `store/listing.md`.
 | Content rating | Questionnaire: category "All other app types", answer No to everything → Everyone / PEGI 3 |
 | Target audience | **13 and over** (choosing under-13 pulls in the Families policy) |
 | Data safety | **No data collected, no data shared** |
-| **Exact alarms** | Declare that the core functionality is a **timer**: "Interval timer for boxing/MMA. Exact alarms ring the round-start/round-end bells at the exact second while the app is in the background." |
+| **Exact alarms** | Not needed: the app uses SCHEDULE_EXACT_ALARM only (USE_EXACT_ALARM is restricted to alarm-clock/calendar apps). |
 | Health apps | Activity & fitness: workout timer only, no health data |
 | Government / financial / news | No |
 

@@ -5,11 +5,11 @@ const { withAndroidManifest } = require('expo/config-plugins');
  * uses exact alarms when canScheduleExactAlarms() is true (Android 12+);
  * otherwise it falls back to inexact alarms the OS may deliver minutes late.
  *
- * - USE_EXACT_ALARM (Android 13+): granted at install. Google Play permits it
- *   for apps whose core function is a timer; requires the Play Console
- *   permissions declaration.
- * - SCHEDULE_EXACT_ALARM capped at API 32: granted by default on Android 12/12L,
- *   where USE_EXACT_ALARM doesn't exist yet.
+ * - SCHEDULE_EXACT_ALARM: granted by default on Android 12/13. On Android 14+
+ *   new installs start without it; Setup has a button that opens the
+ *   "Alarms & reminders" screen so the user can allow it.
+ * - USE_EXACT_ALARM is deliberately NOT used: Google Play only allows it for
+ *   alarm-clock and calendar apps.
  */
 module.exports = function withExactAlarms(config) {
   return withAndroidManifest(config, (cfg) => {
@@ -20,8 +20,7 @@ module.exports = function withExactAlarms(config) {
         perms.push({ $: { 'android:name': name, ...extra } });
       }
     };
-    add('android.permission.USE_EXACT_ALARM');
-    add('android.permission.SCHEDULE_EXACT_ALARM', { 'android:maxSdkVersion': '32' });
+    add('android.permission.SCHEDULE_EXACT_ALARM');
     return cfg;
   });
 };

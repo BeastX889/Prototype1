@@ -19,7 +19,7 @@ iOS subtitle:
 
 **The round timer whose bell always rings.**
 
-Most interval timers go quiet the moment you lock your screen or open Spotify. Round Timer was built around one promise: you will never miss the end of a round — screen locked, phone in your pocket, music playing.
+Most interval timers go quiet the moment you lock your screen or start your music. Round Timer was built around one promise: you will never miss the end of a round — screen locked, phone in your pocket, music playing.
 
 **RELIABLE BELLS**
 • Bells and warnings keep firing with the screen off or the app in the background
@@ -27,7 +27,7 @@ Most interval timers go quiet the moment you lock your screen or open Spotify. R
 • Sound check button so you know it's audible before you wrap your hands
 
 **BUILT FOR FIGHT TRAINING**
-• Boxing, MMA, Muay Thai, HIIT and Tabata presets — or build your own
+• Boxing, MMA, HIIT and Tabata presets — or build your own
 • Warm-up and cool-down blocks, custom time for every round
 • Voice announcements: "Round 2 — fight!", "10 seconds", "Rest"
 • Combo caller speaks boxing combinations while you work
@@ -64,20 +64,18 @@ Whether you're shadowboxing at home, hitting the heavy bag, or running pads, Rou
 - Does the app collect or share user data? **No.**
 - All settings/history stored locally on device only; no analytics, no ads SDKs, no network calls.
 - iOS "Data Not Collected" label applies.
-- Privacy policy URL: https://beastx889.github.io/Prototype1/privacy.html
+- Privacy policy URL: https://beastx889.github.io/Prototype1/privacy.html (contact: lumiolabsdev99@gmail.com)
 
 ## Play permission declarations
 
-- **Exact alarms (`USE_EXACT_ALARM`)**: core functionality = **timer**.
-  Justification: "Round Timer is an interval timer for boxing/MMA. Exact alarms
-  ring the round-start and round-end bells at the exact second while the app is
-  in the background; inexact alarms would ring the bell late and break the
-  timer's core function."
+- **Exact alarms**: the app uses `SCHEDULE_EXACT_ALARM` only (no Play declaration
+  needed). `USE_EXACT_ALARM` was removed because Play restricts it to alarm-clock
+  and calendar apps. On Android 14+ the user allows it once via Setup → "Allow
+  exact bells".
 - **Health apps**: Activity & fitness, workout timer only. No health data is
   read, stored, or shared.
 - Effective Android permissions in the built bundle (checked with bundletool):
-  - **App:** POST_NOTIFICATIONS, USE_EXACT_ALARM, SCHEDULE_EXACT_ALARM
-    (Android ≤ 12L only), VIBRATE, WAKE_LOCK, MODIFY_AUDIO_SETTINGS.
+  - **App:** POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, VIBRATE, WAKE_LOCK, MODIFY_AUDIO_SETTINGS.
   - **Added by the notifications library:** RECEIVE_BOOT_COMPLETED (restores
     scheduled bells after a reboot), launcher-badge permissions for various
     phone makers, and an unused Firebase push receiver (c2dm RECEIVE,

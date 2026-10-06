@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Constants from 'expo-constants';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { type TimerSettings } from '@/timer/engine';
@@ -26,6 +27,17 @@ const AUDIO_MODES: { key: TimerSettings['audioMode']; label: string }[] = [
   { key: 'duck', label: 'Duck' },
   { key: 'solo', label: 'Solo' },
 ];
+
+// Android 14+ installs start without exact-alarm access, so background bells
+// could ring late. This opens the per-app "Alarms & reminders" switch.
+const NEEDS_EXACT_ALARM_GRANT = Platform.OS === 'android' && Number(Platform.Version) >= 34;
+
+function openExactAlarmSettings() {
+  const pkg = Constants.expoConfig?.android?.package ?? 'com.lumiolab.roundtimer';
+  IntentLauncher.startActivityAsync('android.settings.REQUEST_SCHEDULE_EXACT_ALARM', {
+    data: `package:${pkg}`,
+  }).catch(() => Linking.openSettings());
+}
 
 const PRIVACY_URL = 'https://beastx889.github.io/Prototype1/privacy.html';
 
@@ -280,6 +292,20 @@ export default function SettingsScreen() {
           >
             <Text style={styles.soundCheckText}>Sound check — play the bell</Text>
           </Pressable>
+          {NEEDS_EXACT_ALARM_GRANT && (
+            <>
+              <Pressable
+                onPress={openExactAlarmSettings}
+                style={({ pressed }) => [styles.soundCheck, pressed && styles.pressed]}
+                accessibilityLabel="Allow exact bells"
+              >
+                <Text style={styles.soundCheckText}>Allow exact bells (Alarms &amp; reminders)</Text>
+              </Pressable>
+              <Text style={styles.hint}>
+                Lets bells ring on the second while the screen is locked. Turn on "Allow setting alarms and reminders".
+              </Text>
+            </>
+          )}
           {settings.volume === 0 && (
             <Text style={styles.hint}>Volume is 0% — bells are silent.</Text>
           )}
